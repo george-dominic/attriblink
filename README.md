@@ -58,8 +58,11 @@ Links attribution effects across multiple periods.
 ## Development
 
 ```bash
-# Install in development mode
-uv pip install -e ".[dev]"
+# Install dependencies (requires uv)
+uv sync
+
+# Activate the virtual environment
+source .venv/bin/activate
 
 # Run tests
 pytest
