@@ -4,6 +4,7 @@ import pandas as pd
 
 from . import methods
 from .exceptions import InvalidMethodError
+from .result import AttributionResult
 from .validators import (
     validate_alignment,
     validate_effects,
@@ -20,7 +21,7 @@ def link(
     portfolio_returns: pd.Series,
     benchmark_returns: pd.Series,
     method: str = "carino",
-) -> pd.Series:
+) -> AttributionResult:
     """Link attribution effects across multiple periods.
 
     This function applies a linking method to convert period-by-period
@@ -36,8 +37,15 @@ def link(
         method: Linking method to use. Currently only "carino" is supported.
 
     Returns:
-        Series of linked effects, one value per effect column.
-        The sum of linked effects equals the cumulative excess return.
+        AttributionResult: An object containing:
+            - .linked_effects: Series of linked effects
+            - .data: DataFrame with all attribution data (period values, totals, linked)
+            - .summary(): Print a formatted summary table
+            - .k_factor: The Carino k-factor used
+            - .date_range: Tuple of (start_date, end_date)
+            - .num_periods: Number of periods
+            - .effect_columns: List of effect column names
+            - Access linked effects via: result['effect_name']
 
     Raises:
         InvalidMethodError: If an unsupported method is specified.
@@ -49,9 +57,8 @@ def link(
         >>> portfolio = pd.Series([0.02, 0.03], index=pd.date_range("2024-01-01", periods=2, freq="M"))
         >>> benchmark = pd.Series([0.015, 0.02], index=portfolio.index)
         >>> effects = pd.DataFrame({"allocation": [0.005, 0.008], "selection": [0.002, 0.005]}, index=portfolio.index)
-        >>> linked = link(effects, portfolio, benchmark, method="carino")
-        >>> print(linked)
-        >>> print(f"Sum: {linked.sum():.6f}, Excess: {(portfolio - benchmark).sum():.6f}")
+        >>> result = link(effects, portfolio, benchmark, method="carino")
+        >>> print(result.summary())
     """
     # Validate method
     if method not in AVAILABLE_METHODS:
@@ -68,7 +75,14 @@ def link(
 
     # Apply the linking method
     if method == "carino":
-        return methods.carino_link(effects, portfolio_returns, benchmark_returns)
+        linked_series, k_factor = methods.carino_link(
+            effects, portfolio_returns, benchmark_returns, return_k=True
+        )
 
-    # This should never be reached due to earlier validation
-    raise InvalidMethodError(f"Method '{method}' not implemented")
+    return AttributionResult(
+        linked_effects=linked_series,
+        k_factor=k_factor,
+        portfolio_returns=portfolio_returns,
+        benchmark_returns=benchmark_returns,
+        effects=effects,
+    )

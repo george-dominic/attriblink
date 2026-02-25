@@ -5,6 +5,7 @@ import pandas as pd
 import pytest
 
 from attriblink import link
+from attriblink.result import AttributionResult
 
 
 class TestAdditivityInvariant:
@@ -22,7 +23,8 @@ class TestAdditivityInvariant:
         result = link(effects, portfolio, benchmark, method="carino")
         cumulative_excess = (portfolio - benchmark).sum()
 
-        assert np.isclose(result.sum(), cumulative_excess, rtol=1e-10)
+        # Access linked effects via result.linked_effects or result['effect_name']
+        assert np.isclose(result.linked_effects.sum(), cumulative_excess, rtol=1e-10)
 
     def test_additivity_many_periods(self):
         """Test additivity with many periods."""
@@ -40,7 +42,7 @@ class TestAdditivityInvariant:
         result = link(effects, portfolio, benchmark, method="carino")
         cumulative_excess = (portfolio - benchmark).sum()
 
-        assert np.isclose(result.sum(), cumulative_excess, rtol=1e-10)
+        assert np.isclose(result.linked_effects.sum(), cumulative_excess, rtol=1e-10)
 
     def test_additivity_single_effect(self):
         """Test additivity with single effect column."""
@@ -54,7 +56,7 @@ class TestAdditivityInvariant:
         result = link(effects, portfolio, benchmark, method="carino")
         cumulative_excess = excess.sum()
 
-        assert np.isclose(result.sum(), cumulative_excess, rtol=1e-10)
+        assert np.isclose(result.linked_effects.sum(), cumulative_excess, rtol=1e-10)
 
     def test_additivity_many_effects(self):
         """Test additivity with many effect columns."""
@@ -77,7 +79,7 @@ class TestAdditivityInvariant:
         result = link(effects, portfolio, benchmark, method="carino")
         cumulative_excess = excess.sum()
 
-        assert np.isclose(result.sum(), cumulative_excess, rtol=1e-10)
+        assert np.isclose(result.linked_effects.sum(), cumulative_excess, rtol=1e-10)
 
     def test_additivity_negative_excess(self):
         """Test additivity with negative excess return."""
@@ -91,7 +93,7 @@ class TestAdditivityInvariant:
         result = link(effects, portfolio, benchmark, method="carino")
         cumulative_excess = (portfolio - benchmark).sum()
 
-        assert np.isclose(result.sum(), cumulative_excess, rtol=1e-10)
+        assert np.isclose(result.linked_effects.sum(), cumulative_excess, rtol=1e-10)
 
     def test_additivity_zero_excess(self):
         """Test additivity when excess is exactly zero."""
@@ -105,7 +107,7 @@ class TestAdditivityInvariant:
         result = link(effects, portfolio, benchmark, method="carino")
         cumulative_excess = (portfolio - benchmark).sum()
 
-        assert np.isclose(result.sum(), cumulative_excess, rtol=1e-10)
+        assert np.isclose(result.linked_effects.sum(), cumulative_excess, rtol=1e-10)
 
 
 class TestFloatingPointDrift:
@@ -131,7 +133,7 @@ class TestFloatingPointDrift:
         cumulative_excess = excess.sum()
 
         # Should be exact within floating-point tolerance
-        diff = abs(result.sum() - cumulative_excess)
+        diff = abs(result.linked_effects.sum() - cumulative_excess)
         assert diff < 1e-10, f"Floating-point drift detected: {diff}"
 
     def test_no_drift_extreme_values(self):
@@ -151,24 +153,24 @@ class TestFloatingPointDrift:
         result = link(effects, portfolio, benchmark, method="carino")
         cumulative_excess = excess.sum()
 
-        assert np.isclose(result.sum(), cumulative_excess, rtol=1e-10)
+        assert np.isclose(result.linked_effects.sum(), cumulative_excess, rtol=1e-10)
 
 
 class TestResultProperties:
     """Tests for properties of the result."""
 
-    def test_result_is_series(self):
-        """Test that result is a Series."""
+    def test_result_is_attribution_result(self):
+        """Test that result is AttributionResult."""
         portfolio = pd.Series([0.02, 0.03])
         benchmark = pd.Series([0.015, 0.02])
         effects = pd.DataFrame({"col": [0.005, 0.01]})
 
         result = link(effects, portfolio, benchmark, method="carino")
 
-        assert isinstance(result, pd.Series)
+        assert isinstance(result, AttributionResult)
 
-    def test_result_index_matches_effects_columns(self):
-        """Test that result index matches effect column names."""
+    def test_result_linked_effects_index_matches_effects_columns(self):
+        """Test that linked_effects index matches effect column names."""
         portfolio = pd.Series([0.02, 0.03])
         benchmark = pd.Series([0.015, 0.02])
         effects = pd.DataFrame(
@@ -177,4 +179,28 @@ class TestResultProperties:
 
         result = link(effects, portfolio, benchmark, method="carino")
 
-        assert list(result.index) == list(effects.columns)
+        assert list(result.linked_effects.index) == list(effects.columns)
+
+    def test_result_has_k_factor(self):
+        """Test that result has k_factor attribute."""
+        portfolio = pd.Series([0.02, 0.03])
+        benchmark = pd.Series([0.015, 0.02])
+        effects = pd.DataFrame({"col": [0.005, 0.01]})
+
+        result = link(effects, portfolio, benchmark, method="carino")
+
+        assert hasattr(result, 'k_factor')
+        assert isinstance(result.k_factor, float)
+
+    def test_result_dataframe(self):
+        """Test that result.data returns a DataFrame."""
+        portfolio = pd.Series([0.02, 0.03])
+        benchmark = pd.Series([0.015, 0.02])
+        effects = pd.DataFrame(
+            {"allocation": [0.005, 0.008], "selection": [0.002, 0.005]},
+        )
+
+        result = link(effects, portfolio, benchmark, method="carino")
+
+        assert hasattr(result, 'data')
+        assert isinstance(result.data, pd.DataFrame)

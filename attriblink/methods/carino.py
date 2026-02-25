@@ -82,17 +82,20 @@ def carino_link(
     effects: pd.DataFrame,
     portfolio_returns: pd.Series,
     benchmark_returns: pd.Series,
-) -> pd.Series:
+    return_k: bool = False,
+) -> pd.Series | tuple[pd.Series, float]:
     """Apply Carino multi-period linking to attribution effects.
 
     Args:
         effects: DataFrame where each column is an attribution effect for each period.
         portfolio_returns: Portfolio returns for each period.
         benchmark_returns: Benchmark returns for each period.
+        return_k: If True, return a tuple (linked_effects, k_factor).
 
     Returns:
         Series of linked effects (one value per effect column).
         The sum of linked effects equals the sum of period excess returns.
+        If return_k=True, returns (linked_effects, k_factor) tuple.
 
     Raises:
         ZeroExcessReturnError: If cumulative excess return is zero or near-zero.
@@ -148,6 +151,8 @@ def carino_link(
     # Preserve original index names from effects columns
     result = pd.Series(linked_effects, index=effects.columns, name="linked_effects")
 
+    if return_k:
+        return result, k_factor
     return result
 
 
