@@ -29,7 +29,6 @@ Reference:
 import numpy as np
 import pandas as pd
 
-from ..exceptions import ZeroExcessReturnError
 from ..utils.math import (
     DEFAULT_EPSILON,
     safe_log1p,
@@ -86,6 +85,10 @@ def carino_link(
 ) -> pd.Series | tuple[pd.Series, float]:
     """Apply Carino multi-period linking to attribution effects.
 
+    The sum of linked effects equals the cumulative excess return
+    (geometric active return), consistent with the Carino definition
+    of CER in this module.
+
     Args:
         effects: DataFrame where each column is an attribution effect for each period.
         portfolio_returns: Portfolio returns for each period.
@@ -94,7 +97,7 @@ def carino_link(
 
     Returns:
         Series of linked effects (one value per effect column).
-        The sum of linked effects equals the sum of period excess returns.
+        The sum of linked effects equals the cumulative excess return.
         If return_k=True, returns (linked_effects, k_factor) tuple.
 
     Raises:
@@ -107,33 +110,37 @@ def carino_link(
 
     # Compute period excess returns
     excess_returns = portfolio_arr - benchmark_arr
-    
-    # Sum of period excess returns (arithmetic) - this is what we need to match
+
+    # Arithmetic sum of period excess returns (used only for k-factor fallback)
     total_excess = np.sum(excess_returns)
 
-    # Handle single period case: no linking needed
+    # Geometric cumulative excess return (Carino CER target)
+    cumulative_excess = compute_cumulative_excess_from_returns(
+        portfolio_arr,
+        benchmark_arr,
+    )
+
+    # Handle single period case: no linking needed (arithmetic == geometric)
     if len(portfolio_arr) == 1:
         k_factor = 1.0
-    # Handle near-zero total excess: use k = 1
-    elif abs(total_excess) < DEFAULT_EPSILON:
+    # Handle near-zero cumulative excess: use k = 1
+    elif abs(cumulative_excess) < DEFAULT_EPSILON:
         k_factor = 1.0
     else:
-        # Compute cumulative (geometric) excess for the k-factor numerator
-        cumulative_portfolio = compute_geometric_cumulative_return(portfolio_arr)
-        cumulative_benchmark = compute_geometric_cumulative_return(benchmark_arr)
-        cumulative_excess = cumulative_portfolio - cumulative_benchmark
-        
         # Compute sum of log-linked excess returns (denominator of k-factor)
         log_excess = safe_log1p(excess_returns)
         sum_log_excess = np.sum(log_excess)
 
         if abs(sum_log_excess) < DEFAULT_EPSILON:
-            # Denominator is near-zero but numerator is not:
-            # Fall back to ratio
-            k_factor = cumulative_excess / total_excess
+            # Denominator is near-zero; fall back to ratio of
+            # geometric to arithmetic excess when possible.
+            if abs(total_excess) < DEFAULT_EPSILON:
+                k_factor = 1.0
+            else:
+                k_factor = cumulative_excess / total_excess
         else:
             # Standard Carino k-factor formula:
-            # k = ln(1 + cumulative_excess) / sum(ln(1 + excess_t))
+            # k = ln(1 + CER) / sum(ln(1 + ER_t))
             numerator = safe_log1p(np.array([cumulative_excess]))[0]
             k_factor = numerator / sum_log_excess
 
@@ -143,10 +150,14 @@ def carino_link(
     # Apply k-factor scaling
     linked_effects = k_factor * effect_sums
 
-    # Ensure exact additivity by scaling to match total excess
-    # This handles edge cases where k-factor calculation is problematic
-    if len(effect_sums) > 0 and abs(np.sum(linked_effects)) > DEFAULT_EPSILON:
-        linked_effects = linked_effects * (total_excess / np.sum(linked_effects))
+    # Ensure exact additivity by scaling to match geometric cumulative excess.
+    # This handles edge cases where k-factor calculation is problematic.
+    if (
+        len(effect_sums) > 0
+        and abs(np.sum(linked_effects)) > DEFAULT_EPSILON
+        and abs(cumulative_excess) > DEFAULT_EPSILON
+    ):
+        linked_effects = linked_effects * (cumulative_excess / np.sum(linked_effects))
 
     # Preserve original index names from effects columns
     result = pd.Series(linked_effects, index=effects.columns, name="linked_effects")

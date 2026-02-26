@@ -24,10 +24,12 @@ class TestCarinoBasic:
 
         result = link(effects, portfolio, benchmark, method="carino")
 
-        # Verify additivity - get linked effects from result
-        excess_return = (portfolio - benchmark).sum()
+        # Verify additivity to geometric cumulative excess return (CER)
+        cr_port = (1 + portfolio).prod() - 1
+        cr_bench = (1 + benchmark).prod() - 1
+        cumulative_excess = cr_port - cr_bench
         linked_sum = result['allocation'] + result['selection']
-        assert np.isclose(linked_sum, excess_return, rtol=1e-10)
+        assert np.isclose(linked_sum, cumulative_excess, rtol=1e-10)
 
     def test_three_period(self):
         """Test three-period case."""
@@ -44,9 +46,11 @@ class TestCarinoBasic:
 
         result = link(effects, portfolio, benchmark, method="carino")
 
-        excess_return = (portfolio - benchmark).sum()
+        cr_port = (1 + portfolio).prod() - 1
+        cr_bench = (1 + benchmark).prod() - 1
+        cumulative_excess = cr_port - cr_bench
         linked_sum = result['allocation'] + result['selection'] + result['interaction']
-        assert np.isclose(linked_sum, excess_return, rtol=1e-10)
+        assert np.isclose(linked_sum, cumulative_excess, rtol=1e-10)
 
     def test_single_period(self):
         """Test single period (should just return sums)."""
@@ -66,9 +70,12 @@ class TestCarinoBasic:
         actual_sum = result['allocation'] + result['selection']
         assert np.isclose(actual_sum, expected_sum, rtol=1e-10)
 
-        # Also verify additivity (effects sum to excess)
-        excess_return = (portfolio - benchmark).sum()
-        assert np.isclose(actual_sum, excess_return, rtol=1e-10)
+        # Also verify additivity (effects sum to excess).
+        # For a single period, arithmetic and geometric excess coincide.
+        cr_port = (1 + portfolio).prod() - 1
+        cr_bench = (1 + benchmark).prod() - 1
+        cumulative_excess = cr_port - cr_bench
+        assert np.isclose(actual_sum, cumulative_excess, rtol=1e-10)
 
 
 class TestCarinoEdgeCases:
@@ -100,10 +107,12 @@ class TestCarinoEdgeCases:
 
         result = link(effects, portfolio, benchmark, method="carino")
 
-        # Should complete without error
-        excess_return = (portfolio - benchmark).sum()
+        # Should complete without error and match geometric cumulative excess
+        cr_port = (1 + portfolio).prod() - 1
+        cr_bench = (1 + benchmark).prod() - 1
+        cumulative_excess = cr_port - cr_bench
         linked_sum = result['effect']
-        assert np.isclose(linked_sum, excess_return, rtol=1e-6)
+        assert np.isclose(linked_sum, cumulative_excess, rtol=1e-6)
 
     def test_negative_excess_return(self):
         """Test with negative cumulative excess return."""
@@ -116,9 +125,11 @@ class TestCarinoEdgeCases:
 
         result = link(effects, portfolio, benchmark, method="carino")
 
-        excess_return = (portfolio - benchmark).sum()
+        cr_port = (1 + portfolio).prod() - 1
+        cr_bench = (1 + benchmark).prod() - 1
+        cumulative_excess = cr_port - cr_bench
         linked_sum = result['allocation'] + result['selection']
-        assert np.isclose(linked_sum, excess_return, rtol=1e-10)
+        assert np.isclose(linked_sum, cumulative_excess, rtol=1e-10)
 
 
 class TestKFactor:
@@ -160,9 +171,11 @@ class TestCarinoNumericalStability:
 
         result = link(effects, portfolio, benchmark, method="carino")
 
-        excess_return = (portfolio - benchmark).sum()
+        cr_port = (1 + portfolio).prod() - 1
+        cr_bench = (1 + benchmark).prod() - 1
+        cumulative_excess = cr_port - cr_bench
         linked_sum = result['effect']
-        assert np.isclose(linked_sum, excess_return, rtol=1e-6)
+        assert np.isclose(linked_sum, cumulative_excess, rtol=1e-6)
 
     def test_large_returns(self):
         """Test with large returns."""
@@ -175,9 +188,11 @@ class TestCarinoNumericalStability:
 
         result = link(effects, portfolio, benchmark, method="carino")
 
-        excess_return = (portfolio - benchmark).sum()
+        cr_port = (1 + portfolio).prod() - 1
+        cr_bench = (1 + benchmark).prod() - 1
+        cumulative_excess = cr_port - cr_bench
         linked_sum = result['allocation'] + result['selection']
-        assert np.isclose(linked_sum, excess_return, rtol=1e-10)
+        assert np.isclose(linked_sum, cumulative_excess, rtol=1e-10)
 
 
 class TestAttributionResult:
