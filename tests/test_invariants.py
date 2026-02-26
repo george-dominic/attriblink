@@ -21,7 +21,9 @@ class TestAdditivityInvariant:
         )
 
         result = link(effects, portfolio, benchmark, method="carino")
-        cumulative_excess = (portfolio - benchmark).sum()
+        cr_port = (1 + portfolio).prod() - 1
+        cr_bench = (1 + benchmark).prod() - 1
+        cumulative_excess = cr_port - cr_bench
 
         # Access linked effects via result.linked_effects or result['effect_name']
         assert np.isclose(result.linked_effects.sum(), cumulative_excess, rtol=1e-10)
@@ -40,7 +42,9 @@ class TestAdditivityInvariant:
         )
 
         result = link(effects, portfolio, benchmark, method="carino")
-        cumulative_excess = (portfolio - benchmark).sum()
+        cr_port = (1 + portfolio).prod() - 1
+        cr_bench = (1 + benchmark).prod() - 1
+        cumulative_excess = cr_port - cr_bench
 
         assert np.isclose(result.linked_effects.sum(), cumulative_excess, rtol=1e-10)
 
@@ -54,7 +58,9 @@ class TestAdditivityInvariant:
         effects = pd.DataFrame({"excess": excess.values})
 
         result = link(effects, portfolio, benchmark, method="carino")
-        cumulative_excess = excess.sum()
+        cr_port = (1 + portfolio).prod() - 1
+        cr_bench = (1 + benchmark).prod() - 1
+        cumulative_excess = cr_port - cr_bench
 
         assert np.isclose(result.linked_effects.sum(), cumulative_excess, rtol=1e-10)
 
@@ -77,7 +83,9 @@ class TestAdditivityInvariant:
         effects = pd.DataFrame(effects_data)
 
         result = link(effects, portfolio, benchmark, method="carino")
-        cumulative_excess = excess.sum()
+        cr_port = (1 + portfolio).prod() - 1
+        cr_bench = (1 + benchmark).prod() - 1
+        cumulative_excess = cr_port - cr_bench
 
         assert np.isclose(result.linked_effects.sum(), cumulative_excess, rtol=1e-10)
 
@@ -91,7 +99,9 @@ class TestAdditivityInvariant:
         )
 
         result = link(effects, portfolio, benchmark, method="carino")
-        cumulative_excess = (portfolio - benchmark).sum()
+        cr_port = (1 + portfolio).prod() - 1
+        cr_bench = (1 + benchmark).prod() - 1
+        cumulative_excess = cr_port - cr_bench
 
         assert np.isclose(result.linked_effects.sum(), cumulative_excess, rtol=1e-10)
 
@@ -105,7 +115,9 @@ class TestAdditivityInvariant:
         )
 
         result = link(effects, portfolio, benchmark, method="carino")
-        cumulative_excess = (portfolio - benchmark).sum()
+        cr_port = (1 + portfolio).prod() - 1
+        cr_bench = (1 + benchmark).prod() - 1
+        cumulative_excess = cr_port - cr_bench
 
         assert np.isclose(result.linked_effects.sum(), cumulative_excess, rtol=1e-10)
 
@@ -130,7 +142,9 @@ class TestFloatingPointDrift:
         )
 
         result = link(effects, portfolio, benchmark, method="carino")
-        cumulative_excess = excess.sum()
+        cr_port = (1 + portfolio).prod() - 1
+        cr_bench = (1 + benchmark).prod() - 1
+        cumulative_excess = cr_port - cr_bench
 
         # Should be exact within floating-point tolerance
         diff = abs(result.linked_effects.sum() - cumulative_excess)
@@ -151,7 +165,9 @@ class TestFloatingPointDrift:
         )
 
         result = link(effects, portfolio, benchmark, method="carino")
-        cumulative_excess = excess.sum()
+        cr_port = (1 + portfolio).prod() - 1
+        cr_bench = (1 + benchmark).prod() - 1
+        cumulative_excess = cr_port - cr_bench
 
         assert np.isclose(result.linked_effects.sum(), cumulative_excess, rtol=1e-10)
 
