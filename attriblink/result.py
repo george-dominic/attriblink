@@ -44,41 +44,62 @@ class AttributionResult:
 
     @property
     def data(self) -> pd.DataFrame:
-        """Get the full DataFrame with all attribution data."""
-        # Build a DataFrame with period columns + Total + Linked
+        """Get the full DataFrame with all attribution data.
+        
+        Returns a DataFrame where:
+        - Each period is a row
+        - Columns ordered: Portfolio Return, Benchmark Return, Active Return, [effects...], Total
+        - A 'Total' row at the bottom contains geometric linked returns
+        """
+        # Get period indices
         periods = [str(i) for i in self._effects.index]
-        cols = periods + ['Total', 'Linked']
         
-        # Create rows for returns
-        portfolio_vals = list(self._portfolio_returns.values)
-        benchmark_vals = list(self._benchmark_returns.values)
-        active_vals = list((self._portfolio_returns - self._benchmark_returns).values)
-        
-        # Calculate totals (compounded)
+        # Calculate geometric linked returns for totals
         total_port = (1 + self._portfolio_returns).prod() - 1
         total_bench = (1 + self._benchmark_returns).prod() - 1
         total_active = total_port - total_bench
         
-        data = {
-            'Portfolio Return': portfolio_vals + [total_port, None],
-            'Benchmark Return': benchmark_vals + [total_bench, None],
-            'Active Return': active_vals + [total_active, None],
+        # Build column order: Portfolio, Benchmark, Active, effects, Total
+        effect_cols = list(self._effects.columns)
+        column_order = ['Portfolio Return', 'Benchmark Return', 'Active Return'] + effect_cols + ['Total']
+        
+        # Build data row by row (one row per period)
+        rows_data = []
+        
+        for i, period in enumerate(periods):
+            row = {
+                'Portfolio Return': self._portfolio_returns.iloc[i],
+                'Benchmark Return': self._benchmark_returns.iloc[i],
+                'Active Return': self._portfolio_returns.iloc[i] - self._benchmark_returns.iloc[i],
+            }
+            # Add each effect for this period
+            for effect in effect_cols:
+                row[effect] = self._effects[effect].iloc[i]
+            # Total for this period = sum of effects
+            row['Total'] = self._effects.iloc[i].sum()
+            rows_data.append(row)
+        
+        # Add Total row at bottom with geometric linked values
+        total_row = {
+            'Portfolio Return': total_port,
+            'Benchmark Return': total_bench,
+            'Active Return': total_active,
         }
+        # Total for each effect = Carino linked effect
+        for effect in effect_cols:
+            total_row[effect] = self._linked_effects[effect]
+        # Total of totals = sum of linked effects
+        total_row['Total'] = self._linked_effects.sum()
         
-        # Add effect rows
-        for col in self._effects.columns:
-            period_vals = list(self._effects[col].values)
-            total = sum(period_vals)
-            linked = self._linked_effects[col]
-            data[col] = period_vals + [total, linked]
+        rows_data.append(total_row)
         
-        # Add Total Effects row
-        period_totals = list(self._effects.sum(axis=1).values)
-        total_sum = sum(period_totals)
-        linked_sum = self._linked_effects.sum()
-        data['Total Effects'] = period_totals + [total_sum, linked_sum]
+        # Create DataFrame with periods as index (including 'Total' for last row)
+        row_labels = periods + ['Total']
+        df = pd.DataFrame(rows_data, index=row_labels)
         
-        df = pd.DataFrame(data, index=cols).T
+        # Reorder columns to match desired order
+        df = df[column_order]
+        
         return df
 
     @property
