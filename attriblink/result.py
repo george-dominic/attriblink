@@ -48,7 +48,7 @@ class AttributionResult:
         
         Returns a DataFrame where:
         - Each period is a row
-        - Columns ordered: Portfolio Return, Benchmark Return, Active Return, [effects...], Total
+        - Columns ordered: Portfolio Return, Benchmark Return, Active Return, [effects...]
         - A 'Total' row at the bottom contains geometric linked returns
         """
         # Get period indices
@@ -59,9 +59,9 @@ class AttributionResult:
         total_bench = (1 + self._benchmark_returns).prod() - 1
         total_active = total_port - total_bench
         
-        # Build column order: Portfolio, Benchmark, Active, effects, Total
+        # Build column order: Portfolio, Benchmark, Active, effects
         effect_cols = list(self._effects.columns)
-        column_order = ['Portfolio Return', 'Benchmark Return', 'Active Return'] + effect_cols + ['Total']
+        column_order = ['Portfolio Return', 'Benchmark Return', 'Active Return'] + effect_cols
         
         # Build data row by row (one row per period)
         rows_data = []
@@ -75,8 +75,6 @@ class AttributionResult:
             # Add each effect for this period
             for effect in effect_cols:
                 row[effect] = self._effects[effect].iloc[i]
-            # Total for this period = sum of effects
-            row['Total'] = self._effects.iloc[i].sum()
             rows_data.append(row)
         
         # Add Total row at bottom with geometric linked values
@@ -88,8 +86,6 @@ class AttributionResult:
         # Total for each effect = Carino linked effect
         for effect in effect_cols:
             total_row[effect] = self._linked_effects[effect]
-        # Total of totals = sum of linked effects
-        total_row['Total'] = self._linked_effects.sum()
         
         rows_data.append(total_row)
         
