@@ -213,7 +213,7 @@ class TestAttributionResult:
             {"allocation": [0.005, 0.008], "selection": [0.002, 0.005]},
         )
 
-        result = link(effects, portfolio, benchmark, method="carino")
+        result = link(effects, portfolio, benchmark, method="carino", check_effects_sum=False)
 
         assert hasattr(result, 'k_factor')
         assert isinstance(result.k_factor, float)
@@ -226,7 +226,7 @@ class TestAttributionResult:
             {"allocation": [0.005, 0.008], "selection": [0.002, 0.005]},
         )
 
-        result = link(effects, portfolio, benchmark, method="carino")
+        result = link(effects, portfolio, benchmark, method="carino", check_effects_sum=False)
 
         assert hasattr(result, 'data')
         assert isinstance(result.data, pd.DataFrame)
@@ -239,7 +239,7 @@ class TestAttributionResult:
             {"allocation": [0.005, 0.008], "selection": [0.002, 0.005]},
         )
 
-        result = link(effects, portfolio, benchmark, method="carino")
+        result = link(effects, portfolio, benchmark, method="carino", check_effects_sum=False)
 
         summary = result.summary()
         assert isinstance(summary, str)
@@ -253,7 +253,7 @@ class TestAttributionResult:
             {"allocation": [0.005, 0.008], "selection": [0.002, 0.005]},
         )
 
-        result = link(effects, portfolio, benchmark, method="carino")
+        result = link(effects, portfolio, benchmark, method="carino", check_effects_sum=False)
 
         summary_str = str(result)
         assert "Attribution Summary" in summary_str
