@@ -42,3 +42,8 @@ addopts = "--cov=attriblink --cov-report=term-missing"
 
 [tool.hatch.build.targets.wheel]
 packages = ["attriblink"]
+
+[dependency-groups]
+dev = [
+    "pytest-cov>=7.0.0",
+]
