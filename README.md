@@ -2,8 +2,8 @@
 
 [![PyPI Version](https://img.shields.io/pypi/v/attriblink)](https://pypi.org/project/attriblink/)
 [![Python Versions](https://img.shields.io/pypi/pyversions/attriblink)](https://pypi.org/project/attriblink/)
-[![Tests](https://github.com/gadomin/attriblink/actions/workflows/test.yml/badge.svg)](https://github.com/gadomin/attriblink/actions/workflows/test.yml)
-[![Coverage](https://codecov.io/gh/gadomin/attriblink/branch/main/graph/badge.svg)](https://codecov.io/gh/gadomin/attriblink)
+[![Tests](https://github.com/george-dominic/attriblink/actions/workflows/test.yml/badge.svg)](https://github.com/george-dominic/attriblink/actions/workflows/test.yml)
+[![Coverage](https://codecov.io/gh/george-dominic/attriblink/branch/main/graph/badge.svg)](https://codecov.io/gh/george-dominic/attriblink)
 
 Multi-period attribution linking for portfolio returns.
 
