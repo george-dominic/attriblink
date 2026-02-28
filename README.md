@@ -20,25 +20,49 @@ pip install attriblink
 
 ```python
 import pandas as pd
-import numpy as np
 from attriblink import link
 
-# Create sample data
-portfolio_returns = pd.Series([0.02, 0.03, 0.015], index=pd.date_range("2024-01-01", periods=3, freq="ME"))
-benchmark_returns = pd.Series([0.015, 0.02, 0.01], index=pd.date_range("2024-01-01", periods=3, freq="ME"))
+# Quarterly portfolio and benchmark returns
+portfolio_returns = pd.Series(
+    [0.025, 0.035, -0.012, 0.048],
+    index=pd.date_range("2024-01-01", periods=4, freq="QE")
+)
+benchmark_returns = pd.Series(
+    [0.018, 0.028, -0.015, 0.038],
+    index=portfolio_returns.index
+)
 
-# Attribution effects (e.g., allocation, selection, interaction effects)
+# Attribution effects from Brinson-Fachler
 effects = pd.DataFrame({
-    "allocation": [0.005, 0.008, 0.003],
-    "selection": [0.002, 0.005, 0.004],
-    "interaction": [0.001, 0.002, 0.001]
+    "allocation":    [0.005, 0.006, 0.002, 0.008],
+    "selection":     [0.003, 0.002, -0.001, 0.004],
+    "interaction":   [0.001, 0.001, 0.000, 0.002]
 }, index=portfolio_returns.index)
 
 # Link effects using Carino method
-linked_effects = link(effects, portfolio_returns, benchmark_returns, method="carino")
-print(linked_effects)
-print(f"Sum of linked effects: {linked_effects.sum():.6f}")
-print(f"Total excess return: {(portfolio_returns - benchmark_returns).sum():.6f}")
+result = link(effects, portfolio_returns, benchmark_returns)
+
+# View results
+print(result.summary())
+
+# Access individual effects
+print(f"Allocation: {result['allocation']:.4%}")
+print(f"Selection:  {result['selection']:.4%}")
+
+# k-factor interpretation
+print(f"k-factor: {result.k_factor:.4f}")
+# k > 1: volatile excess returns, k < 1: consistent excess
+```
+
+## Understanding the k-Factor
+
+The k-factor is a smoothing coefficient that scales attribution effects to achieve geometric additivity:
+
+- **k = 1.0**: No adjustment needed (arithmetic = geometric)
+- **k > 1**: Volatile excess returns — effects scaled up
+- **k < 1**: Consistent excess returns — effects scaled down
+
+The sum of linked effects always equals the cumulative excess return.
 ```
 
 ## API
