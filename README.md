@@ -25,7 +25,7 @@ from attriblink import link
 # Quarterly portfolio and benchmark returns
 portfolio_returns = pd.Series(
     [0.025, 0.035, -0.012, 0.048],
-    index=pd.date_range("2024-01-01", periods=4, freq="QE")
+    index=pd.date_range("2025-01-01", periods=4, freq="ME")
 )
 benchmark_returns = pd.Series(
     [0.018, 0.028, -0.015, 0.038],
@@ -63,7 +63,7 @@ The k-factor is a smoothing coefficient that scales attribution effects to achie
 - **k < 1**: Consistent excess returns — effects scaled down
 
 The sum of linked effects always equals the cumulative excess return.
-```
+
 
 ## API
 
@@ -99,10 +99,8 @@ uv sync
 source .venv/bin/activate
 
 # Run tests
-pytest
+uv run pytest
 
-# Build package
-python -m build
 ```
 
 ## License
