@@ -2,10 +2,16 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 import pandas as pd
+
+if TYPE_CHECKING:
+    from numpy.typing import NDArray
+
+
+__all__ = ["AttributionResult"]
 
 
 class AttributionResult:
@@ -26,7 +32,7 @@ class AttributionResult:
         portfolio_returns: pd.Series,
         benchmark_returns: pd.Series,
         effects: pd.DataFrame,
-    ):
+    ) -> None:
         """Initialize AttributionResult.
         
         Args:
@@ -64,10 +70,10 @@ class AttributionResult:
         column_order = ['Portfolio Return', 'Benchmark Return', 'Active Return'] + effect_cols
         
         # Build data row by row (one row per period)
-        rows_data = []
+        rows_data: list[dict[str, float]] = []
         
         for i, period in enumerate(periods):
-            row = {
+            row: dict[str, float] = {
                 'Portfolio Return': self._portfolio_returns.iloc[i],
                 'Benchmark Return': self._benchmark_returns.iloc[i],
                 'Active Return': self._portfolio_returns.iloc[i] - self._benchmark_returns.iloc[i],
@@ -78,7 +84,7 @@ class AttributionResult:
             rows_data.append(row)
         
         # Add Total row at bottom with geometric linked values
-        total_row = {
+        total_row: dict[str, float] = {
             'Portfolio Return': total_port,
             'Benchmark Return': total_bench,
             'Active Return': total_active,
@@ -141,13 +147,13 @@ class AttributionResult:
         """Get the list of effect column names."""
         return list(self._effects.columns)
 
-    def _format_percent(self, value: float) -> str:
+    def _format_percent(self, value: float | None) -> str:
         """Format a value as a percentage string."""
         if value is None:
             return "-"
         return f"{value * 100:>7.2f}%"
 
-    def _format_value(self, value: float) -> str:
+    def _format_value(self, value: float | None) -> str:
         """Format a value in its original units (no percent conversion)."""
         if value is None:
             return "-"
@@ -251,11 +257,11 @@ class AttributionResult:
         return self._linked_effects[key]
 
     # Allow iteration over effect columns
-    def __iter__(self):
+    def __iter__(self) -> iter[str]:
         """Iterate over effect column names."""
         return iter(self._effects.columns)
     
     # Add numpy array compatibility
-    def __array__(self) -> np.ndarray:
+    def __array__(self) -> NDArray[np.float64]:
         """Return linked effects as numpy array."""
         return self._linked_effects.values

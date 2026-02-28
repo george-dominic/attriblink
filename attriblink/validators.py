@@ -1,13 +1,28 @@
 """Input validation for attriblink."""
 
+from __future__ import annotations
+
+import warnings
+from collections.abc import Sequence
+
 import numpy as np
 import pandas as pd
 
 from .exceptions import (
+    AlignmentError,
+    EffectsSumMismatchError,
     InvalidEffectsError,
     InvalidReturnsError,
-    AlignmentError,
 )
+
+
+__all__ = [
+    "validate_effects",
+    "validate_returns",
+    "validate_alignment",
+    "validate_not_missing",
+    "validate_effects_sum",
+]
 
 
 # Tolerance for floating-point comparisons
@@ -136,3 +151,66 @@ def validate_not_missing(
 
     if benchmark_returns.isna().any():
         raise InvalidReturnsError("benchmark_returns cannot contain NaN values")
+
+
+# Tolerance for floating-point comparisons in effects sum validation
+EFFECTS_SUM_EPSILON = 1e-9
+
+
+def validate_effects_sum(
+    effects: pd.DataFrame,
+    portfolio_returns: pd.Series,
+    benchmark_returns: pd.Series,
+    strict: bool = False,
+) -> None:
+    """Validate that period-by-period effects sum to period-by-period excess returns.
+
+    This checks the invariant: for each period t,
+        sum_j(effect_j_t) == portfolio_returns_t - benchmark_returns_t
+
+    Args:
+        effects: DataFrame of attribution effects.
+        portfolio_returns: Portfolio return series.
+        benchmark_returns: Benchmark return series.
+        strict: If True, raise EffectsSumMismatchError on mismatch.
+                If False, issue a UserWarning.
+
+    Raises:
+        EffectsSumMismatchError: If effects don't sum to excess and strict=True.
+    """
+    # Calculate period-by-period excess return
+    excess_returns = portfolio_returns - benchmark_returns
+
+    # Calculate sum of effects for each period
+    effects_sum_per_period = effects.sum(axis=1)
+
+    # Check difference
+    difference = (effects_sum_per_period - excess_returns).abs()
+
+    # Use relative tolerance for comparison
+    max_diff = difference.max()
+    max_excess = excess_returns.abs().max()
+
+    # For very small excess returns, use absolute tolerance
+    if max_excess < EFFECTS_SUM_EPSILON:
+        is_within_tolerance = max_diff < EFFECTS_SUM_EPSILON
+    else:
+        relative_diff = max_diff / max_excess
+        is_within_tolerance = relative_diff < EFFECTS_SUM_EPSILON
+
+    if not is_within_tolerance:
+        total_effects = effects_sum_per_period.sum()
+        total_excess = excess_returns.sum()
+        diff_total = total_excess - total_effects
+
+        error_msg = (
+            f"Effects do not sum to excess return. "
+            f"Sum of period effects: {total_effects:.10f}, "
+            f"Sum of excess returns: {total_excess:.10f}, "
+            f"Difference: {diff_total:.10f}"
+        )
+
+        if strict:
+            raise EffectsSumMismatchError(error_msg)
+        else:
+            warnings.warn(error_msg, UserWarning)

@@ -1,5 +1,10 @@
 # attriblink
 
+[![PyPI Version](https://img.shields.io/pypi/v/attriblink)](https://pypi.org/project/attriblink/)
+[![Python Versions](https://img.shields.io/pypi/pyversions/attriblink)](https://pypi.org/project/attriblink/)
+[![Tests](https://github.com/gadomin/attriblink/actions/workflows/test.yml/badge.svg)](https://github.com/gadomin/attriblink/actions/workflows/test.yml)
+[![Coverage](https://codecov.io/gh/gadomin/attriblink/branch/main/graph/badge.svg)](https://codecov.io/gh/gadomin/attriblink)
+
 Multi-period attribution linking for portfolio returns.
 
 ## Overview
@@ -20,8 +25,8 @@ import numpy as np
 from attriblink import link
 
 # Create sample data
-portfolio_returns = pd.Series([0.02, 0.03, 0.015], index=pd.date_range("2024-01-01", periods=3, freq="M"))
-benchmark_returns = pd.Series([0.015, 0.02, 0.01], index=pd.date_range("2024-01-01", periods=3, freq="M"))
+portfolio_returns = pd.Series([0.02, 0.03, 0.015], index=pd.date_range("2024-01-01", periods=3, freq="ME"))
+benchmark_returns = pd.Series([0.015, 0.02, 0.01], index=pd.date_range("2024-01-01", periods=3, freq="ME"))
 
 # Attribution effects (e.g., allocation, selection, interaction effects)
 effects = pd.DataFrame({
@@ -39,7 +44,7 @@ print(f"Total excess return: {(portfolio_returns - benchmark_returns).sum():.6f}
 
 ## API
 
-### `link(effects, portfolio_returns, benchmark_returns, method='carino')`
+### `link(effects, portfolio_returns, benchmark_returns, method='carino', check_effects_sum=True, strict=False)`
 
 Links attribution effects across multiple periods.
 
@@ -48,12 +53,18 @@ Links attribution effects across multiple periods.
 - `portfolio_returns` (pd.Series): Portfolio returns for each period.
 - `benchmark_returns` (pd.Series): Benchmark returns for each period.
 - `method` (str): Linking method to use. Currently only "carino" is supported.
+- `check_effects_sum` (bool): If True, validates that period-by-period effects sum to period-by-period excess returns. Default is True.
+- `strict` (bool): If True and `check_effects_sum` is True, raises `EffectsSumMismatchError` when effects don't sum to excess. If False, issues a UserWarning but continues. Default is False.
 
 **Returns:**
-- `pd.Series`: Linked effects for each attribution source. Sum equals total excess return.
+- `AttributionResult`: An object containing linked effects and attribution data.
 
 **Raises:**
 - `AttributionError`: If inputs are invalid or misaligned.
+- `EffectsSumMismatchError`: If effects don't sum to excess return and `strict=True`.
+
+**Validation Behavior:**
+By default, the function validates that each period's effects sum to that period's excess return (portfolio - benchmark). This helps catch attribution errors early. Use `check_effects_sum=False` to disable this check for legacy data or when using custom scaling.
 
 ## Development
 

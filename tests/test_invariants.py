@@ -20,7 +20,7 @@ class TestAdditivityInvariant:
             {"allocation": [0.005, 0.008], "selection": [0.002, 0.005]},
         )
 
-        result = link(effects, portfolio, benchmark, method="carino")
+        result = link(effects, portfolio, benchmark, method="carino", check_effects_sum=False)
         cr_port = (1 + portfolio).prod() - 1
         cr_bench = (1 + benchmark).prod() - 1
         cumulative_excess = cr_port - cr_bench
@@ -41,7 +41,7 @@ class TestAdditivityInvariant:
             },
         )
 
-        result = link(effects, portfolio, benchmark, method="carino")
+        result = link(effects, portfolio, benchmark, method="carino", check_effects_sum=False)
         cr_port = (1 + portfolio).prod() - 1
         cr_bench = (1 + benchmark).prod() - 1
         cumulative_excess = cr_port - cr_bench
@@ -57,7 +57,7 @@ class TestAdditivityInvariant:
         excess = portfolio - benchmark
         effects = pd.DataFrame({"excess": excess.values})
 
-        result = link(effects, portfolio, benchmark, method="carino")
+        result = link(effects, portfolio, benchmark, method="carino", check_effects_sum=False)
         cr_port = (1 + portfolio).prod() - 1
         cr_bench = (1 + benchmark).prod() - 1
         cumulative_excess = cr_port - cr_bench
@@ -82,7 +82,7 @@ class TestAdditivityInvariant:
 
         effects = pd.DataFrame(effects_data)
 
-        result = link(effects, portfolio, benchmark, method="carino")
+        result = link(effects, portfolio, benchmark, method="carino", check_effects_sum=False)
         cr_port = (1 + portfolio).prod() - 1
         cr_bench = (1 + benchmark).prod() - 1
         cumulative_excess = cr_port - cr_bench
@@ -98,7 +98,7 @@ class TestAdditivityInvariant:
             {"allocation": [-0.005, -0.01, -0.005], "selection": [0.0, 0.0, 0.0]},
         )
 
-        result = link(effects, portfolio, benchmark, method="carino")
+        result = link(effects, portfolio, benchmark, method="carino", check_effects_sum=False)
         cr_port = (1 + portfolio).prod() - 1
         cr_bench = (1 + benchmark).prod() - 1
         cumulative_excess = cr_port - cr_bench
@@ -114,7 +114,7 @@ class TestAdditivityInvariant:
             {"effect": [0.0, 0.0]},
         )
 
-        result = link(effects, portfolio, benchmark, method="carino")
+        result = link(effects, portfolio, benchmark, method="carino", check_effects_sum=False)
         cr_port = (1 + portfolio).prod() - 1
         cr_bench = (1 + benchmark).prod() - 1
         cumulative_excess = cr_port - cr_bench
@@ -141,7 +141,7 @@ class TestFloatingPointDrift:
             },
         )
 
-        result = link(effects, portfolio, benchmark, method="carino")
+        result = link(effects, portfolio, benchmark, method="carino", check_effects_sum=False)
         cr_port = (1 + portfolio).prod() - 1
         cr_bench = (1 + benchmark).prod() - 1
         cumulative_excess = cr_port - cr_bench
@@ -164,7 +164,7 @@ class TestFloatingPointDrift:
             },
         )
 
-        result = link(effects, portfolio, benchmark, method="carino")
+        result = link(effects, portfolio, benchmark, method="carino", check_effects_sum=False)
         cr_port = (1 + portfolio).prod() - 1
         cr_bench = (1 + benchmark).prod() - 1
         cumulative_excess = cr_port - cr_bench
@@ -181,7 +181,7 @@ class TestResultProperties:
         benchmark = pd.Series([0.015, 0.02])
         effects = pd.DataFrame({"col": [0.005, 0.01]})
 
-        result = link(effects, portfolio, benchmark, method="carino")
+        result = link(effects, portfolio, benchmark, method="carino", check_effects_sum=False)
 
         assert isinstance(result, AttributionResult)
 
@@ -193,7 +193,7 @@ class TestResultProperties:
             {"allocation": [0.005, 0.008], "selection": [0.002, 0.005]},
         )
 
-        result = link(effects, portfolio, benchmark, method="carino")
+        result = link(effects, portfolio, benchmark, method="carino", check_effects_sum=False)
 
         assert list(result.linked_effects.index) == list(effects.columns)
 
@@ -203,7 +203,7 @@ class TestResultProperties:
         benchmark = pd.Series([0.015, 0.02])
         effects = pd.DataFrame({"col": [0.005, 0.01]})
 
-        result = link(effects, portfolio, benchmark, method="carino")
+        result = link(effects, portfolio, benchmark, method="carino", check_effects_sum=False)
 
         assert hasattr(result, 'k_factor')
         assert isinstance(result.k_factor, float)
@@ -216,7 +216,7 @@ class TestResultProperties:
             {"allocation": [0.005, 0.008], "selection": [0.002, 0.005]},
         )
 
-        result = link(effects, portfolio, benchmark, method="carino")
+        result = link(effects, portfolio, benchmark, method="carino", check_effects_sum=False)
 
         assert hasattr(result, 'data')
         assert isinstance(result.data, pd.DataFrame)

@@ -1,5 +1,18 @@
 """Custom exceptions for attriblink."""
 
+from __future__ import annotations
+
+
+__all__ = [
+    "AttributionError",
+    "EffectsSumMismatchError",
+    "InvalidEffectsError",
+    "InvalidReturnsError",
+    "AlignmentError",
+    "InvalidMethodError",
+    "ZeroExcessReturnError",
+]
+
 
 class AttributionError(Exception):
     """Base exception for attribution errors."""
@@ -28,4 +41,9 @@ class InvalidMethodError(AttributionError):
 
 class ZeroExcessReturnError(AttributionError):
     """Raised when excess return is zero or near-zero and cannot be linked."""
+    pass
+
+
+class EffectsSumMismatchError(AttributionError):
+    """Raised when effects don't sum to excess return per period."""
     pass
