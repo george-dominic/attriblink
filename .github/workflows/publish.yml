@@ -20,6 +20,9 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Clean dist
+        run: rm -rf dist/
+
       - name: Build package
         run: uv build
 
