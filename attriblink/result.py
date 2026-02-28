@@ -147,6 +147,12 @@ class AttributionResult:
             return "-"
         return f"{value * 100:>7.2f}%"
 
+    def _format_value(self, value: float) -> str:
+        """Format a value in its original units (no percent conversion)."""
+        if value is None:
+            return "-"
+        return f"{value:>10.4f}"
+
     def _format_row_label(self, idx: Any) -> str:
         """Format index value as row label (date or period)."""
         try:
@@ -175,8 +181,8 @@ class AttributionResult:
         effect_cols = self.effect_columns
         column_order = ['Portfolio Return', 'Benchmark Return', 'Active Return'] + effect_cols
 
-        # Compute column widths - fit percentage values (e.g. "  -1.23%")
-        col_width = 10
+        # Compute column widths - fit decimal values (e.g. "  -0.0123")
+        col_width = 11
         label_width = max(12, max(len(self._format_row_label(i)) for i in self._effects.index) + 2, 6)
 
         # Short display names for long column headers
@@ -204,20 +210,20 @@ class AttributionResult:
         for i in range(len(self._portfolio_returns)):
             row_label = self._format_row_label(self._portfolio_returns.index[i])
             row = f"{row_label:<{label_width}}"
-            row += f"{self._format_percent(self._portfolio_returns.iloc[i]):>{col_width}}"
-            row += f"{self._format_percent(self._benchmark_returns.iloc[i]):>{col_width}}"
-            row += f"{self._format_percent(self._portfolio_returns.iloc[i] - self._benchmark_returns.iloc[i]):>{col_width}}"
+            row += f"{self._format_value(self._portfolio_returns.iloc[i]):>{col_width}}"
+            row += f"{self._format_value(self._benchmark_returns.iloc[i]):>{col_width}}"
+            row += f"{self._format_value(self._portfolio_returns.iloc[i] - self._benchmark_returns.iloc[i]):>{col_width}}"
             for effect in effect_cols:
-                row += f"{self._format_percent(self._effects[effect].iloc[i]):>{col_width}}"
+                row += f"{self._format_value(self._effects[effect].iloc[i]):>{col_width}}"
             lines.append(row)
 
         # Total row
         row = f"{'Total':<{label_width}}"
-        row += f"{self._format_percent(total_port):>{col_width}}"
-        row += f"{self._format_percent(total_bench):>{col_width}}"
-        row += f"{self._format_percent(total_active):>{col_width}}"
+        row += f"{self._format_value(total_port):>{col_width}}"
+        row += f"{self._format_value(total_bench):>{col_width}}"
+        row += f"{self._format_value(total_active):>{col_width}}"
         for effect in effect_cols:
-            row += f"{self._format_percent(self._linked_effects[effect]):>{col_width}}"
+            row += f"{self._format_value(self._linked_effects[effect]):>{col_width}}"
         lines.append(row)
 
         # Footer info
