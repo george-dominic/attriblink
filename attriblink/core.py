@@ -1,6 +1,9 @@
 """Core functionality for attriblink."""
 
+from __future__ import annotations
+
 import warnings
+from typing import TYPE_CHECKING
 
 import pandas as pd
 
@@ -15,8 +18,14 @@ from .validators import (
     validate_returns,
 )
 
+if TYPE_CHECKING:
+    from numpy.typing import NDArray
+
 
 AVAILABLE_METHODS = {"carino"}
+
+
+__all__ = ["link", "AttributionResult"]
 
 
 def link(

@@ -26,6 +26,10 @@ Reference:
     Carino, D. R. (1999). Linking Attribution Effects. CFA Institute.
 """
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, overload
+
 import numpy as np
 import pandas as pd
 
@@ -34,8 +38,11 @@ from ..utils.math import (
     safe_log1p,
 )
 
+if TYPE_CHECKING:
+    from numpy.typing import NDArray
 
-def compute_geometric_cumulative_return(returns: np.ndarray) -> float:
+
+def compute_geometric_cumulative_return(returns: NDArray[np.float64]) -> float:
     """Compute cumulative return using geometric (compound) linking.
 
     R = (1 + r_1) * (1 + r_2) * ... * (1 + r_n) - 1
@@ -49,12 +56,12 @@ def compute_geometric_cumulative_return(returns: np.ndarray) -> float:
     if len(returns) == 0:
         return 0.0
     compounded = np.prod(1 + returns) - 1
-    return compounded
+    return float(compounded)
 
 
 def compute_cumulative_excess_from_returns(
-    portfolio_returns: np.ndarray,
-    benchmark_returns: np.ndarray,
+    portfolio_returns: NDArray[np.float64],
+    benchmark_returns: NDArray[np.float64],
 ) -> float:
     """Compute cumulative excess return as difference of cumulative returns.
 
@@ -75,6 +82,24 @@ def compute_cumulative_excess_from_returns(
     cumulative_portfolio = compute_geometric_cumulative_return(portfolio_returns)
     cumulative_benchmark = compute_geometric_cumulative_return(benchmark_returns)
     return cumulative_portfolio - cumulative_benchmark
+
+
+@overload
+def carino_link(
+    effects: pd.DataFrame,
+    portfolio_returns: pd.Series,
+    benchmark_returns: pd.Series,
+    return_k: bool = False,
+) -> pd.Series: ...
+
+
+@overload
+def carino_link(
+    effects: pd.DataFrame,
+    portfolio_returns: pd.Series,
+    benchmark_returns: pd.Series,
+    return_k: bool = True,
+) -> tuple[pd.Series, float]: ...
 
 
 def carino_link(
@@ -168,8 +193,8 @@ def carino_link(
 
 
 def get_k_factor(
-    portfolio_returns: np.ndarray,
-    benchmark_returns: np.ndarray,
+    portfolio_returns: NDArray[np.float64],
+    benchmark_returns: NDArray[np.float64],
 ) -> float:
     """Compute the Carino k-factor for given returns.
 

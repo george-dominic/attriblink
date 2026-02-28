@@ -1,9 +1,14 @@
 """attriblink - Multi-period attribution linking for portfolio returns."""
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from .core import link
 from .exceptions import (
     AlignmentError,
     AttributionError,
+    EffectsSumMismatchError,
     InvalidEffectsError,
     InvalidMethodError,
     InvalidReturnsError,
@@ -18,6 +23,7 @@ __all__ = [
     "AttributionResult",
     "AttributionError",
     "AlignmentError",
+    "EffectsSumMismatchError",
     "InvalidEffectsError",
     "InvalidMethodError",
     "InvalidReturnsError",

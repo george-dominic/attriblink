@@ -1,6 +1,9 @@
 """Input validation for attriblink."""
 
+from __future__ import annotations
+
 import warnings
+from collections.abc import Sequence
 
 import numpy as np
 import pandas as pd
@@ -11,6 +14,15 @@ from .exceptions import (
     InvalidEffectsError,
     InvalidReturnsError,
 )
+
+
+__all__ = [
+    "validate_effects",
+    "validate_returns",
+    "validate_alignment",
+    "validate_not_missing",
+    "validate_effects_sum",
+]
 
 
 # Tolerance for floating-point comparisons
