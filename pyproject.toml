@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "Multi-period attribution linking for portfolio returns"
 readme = "README.md"
 license = { text = "MIT" }
-requires-python = ">=3.12"
+requires-python = ">=3.10"
 authors = [
     { name = "George Dominic" }
 ]
@@ -18,7 +18,8 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.12",
-    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
     "Topic :: Office/Business :: Financial",
 ]
 dependencies = [
