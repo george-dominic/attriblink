@@ -20,8 +20,8 @@ import numpy as np
 from attriblink import link
 
 # Create sample data
-portfolio_returns = pd.Series([0.02, 0.03, 0.015], index=pd.date_range("2024-01-01", periods=3, freq="M"))
-benchmark_returns = pd.Series([0.015, 0.02, 0.01], index=pd.date_range("2024-01-01", periods=3, freq="M"))
+portfolio_returns = pd.Series([0.02, 0.03, 0.015], index=pd.date_range("2024-01-01", periods=3, freq="ME"))
+benchmark_returns = pd.Series([0.015, 0.02, 0.01], index=pd.date_range("2024-01-01", periods=3, freq="ME"))
 
 # Attribution effects (e.g., allocation, selection, interaction effects)
 effects = pd.DataFrame({
