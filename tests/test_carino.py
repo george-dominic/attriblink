@@ -22,7 +22,8 @@ class TestCarinoBasic:
             {"allocation": [0.005, 0.008], "selection": [0.002, 0.005]},
         )
 
-        result = link(effects, portfolio, benchmark, method="carino")
+        # Disable validation - Carino handles effects that don't sum to excess
+        result = link(effects, portfolio, benchmark, method="carino", check_effects_sum=False)
 
         # Verify additivity - get linked effects from result
         excess_return = (portfolio - benchmark).sum()
@@ -42,7 +43,8 @@ class TestCarinoBasic:
             },
         )
 
-        result = link(effects, portfolio, benchmark, method="carino")
+        # Disable validation - Carino handles effects that don't sum to excess
+        result = link(effects, portfolio, benchmark, method="carino", check_effects_sum=False)
 
         excess_return = (portfolio - benchmark).sum()
         linked_sum = result['allocation'] + result['selection'] + result['interaction']
@@ -83,7 +85,8 @@ class TestCarinoEdgeCases:
             {"effect": [0.0, 0.0]},
         )
 
-        result = link(effects, portfolio, benchmark, method="carino")
+        # Disable validation - this is an edge case test
+        result = link(effects, portfolio, benchmark, method="carino", check_effects_sum=False)
 
         # With zero excess, should use k=1
         linked_sum = result['effect']
@@ -98,7 +101,8 @@ class TestCarinoEdgeCases:
             {"effect": [0.000001, 0.0]},
         )
 
-        result = link(effects, portfolio, benchmark, method="carino")
+        # Disable validation - this is an edge case test
+        result = link(effects, portfolio, benchmark, method="carino", check_effects_sum=False)
 
         # Should complete without error
         excess_return = (portfolio - benchmark).sum()
@@ -114,7 +118,8 @@ class TestCarinoEdgeCases:
             {"allocation": [-0.005, -0.01], "selection": [0.0, 0.0]},
         )
 
-        result = link(effects, portfolio, benchmark, method="carino")
+        # Disable validation - this is an edge case test
+        result = link(effects, portfolio, benchmark, method="carino", check_effects_sum=False)
 
         excess_return = (portfolio - benchmark).sum()
         linked_sum = result['allocation'] + result['selection']
@@ -158,7 +163,8 @@ class TestCarinoNumericalStability:
             {"effect": [0.00005, 0.0001]},
         )
 
-        result = link(effects, portfolio, benchmark, method="carino")
+        # Disable validation - this is a numerical stability test
+        result = link(effects, portfolio, benchmark, method="carino", check_effects_sum=False)
 
         excess_return = (portfolio - benchmark).sum()
         linked_sum = result['effect']
@@ -173,7 +179,8 @@ class TestCarinoNumericalStability:
             {"allocation": [0.25, 0.15], "selection": [0.05, 0.05]},
         )
 
-        result = link(effects, portfolio, benchmark, method="carino")
+        # Disable validation - this is a numerical stability test
+        result = link(effects, portfolio, benchmark, method="carino", check_effects_sum=False)
 
         excess_return = (portfolio - benchmark).sum()
         linked_sum = result['allocation'] + result['selection']

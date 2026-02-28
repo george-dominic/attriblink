@@ -29,3 +29,8 @@ class InvalidMethodError(AttributionError):
 class ZeroExcessReturnError(AttributionError):
     """Raised when excess return is zero or near-zero and cannot be linked."""
     pass
+
+
+class EffectsSumMismatchError(AttributionError):
+    """Raised when effects don't sum to excess return per period."""
+    pass
