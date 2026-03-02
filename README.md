@@ -134,6 +134,56 @@ The k-factor is a smoothing coefficient that scales attribution effects to achie
 
 The sum of linked effects always equals the cumulative excess return.
 
+## AttributionResult Methods
+
+The `link()` function returns an `AttributionResult` object with useful methods:
+
+### `result.summary()`
+
+Prints a formatted table showing:
+- Period-by-period returns (portfolio, benchmark, active)
+- Period-by-period effects per category
+- Totals row with linked effects
+- k-factor
+
+```python
+result = link(effects, portfolio_returns, benchmark_returns)
+result.summary()
+```
+
+### `result.data`
+
+Returns a DataFrame with all attribution data:
+- Period-by-period returns and effects
+- Totals row with linked effects (cumulative)
+- Column names: "Portfolio Return", "Benchmark Return", "Active Return", effect columns
+
+```python
+df = result.data
+# Access cumulative linked effects:
+total_allocation = df.loc['Total', 'allocation']
+```
+
+### Accessing Individual Effects
+
+```python
+# Access linked effect directly:
+result['allocation']  # Returns the linked allocation effect
+result['selection']  # Returns the linked selection effect
+```
+
+## Understanding link_batch Output
+
+`link_batch()` returns a **DataFrame directly** (not AttributionResult), with one row per fund at the as-of date:
+
+| Column | Description |
+|--------|-------------|
+| DATE | As-of date (last date in the period) |
+| FUND_ID | Fund identifier |
+| portfolio_return | Cumulative/geometrically linked portfolio return |
+| benchmark_return | Cumulative benchmark return |
+| active_return | Portfolio - Benchmark (at as-of) |
+| allocation, selection, ... | Linked effect values |
 
 ## API
 
