@@ -100,6 +100,20 @@ def link(
             f"Unknown method '{method}'. Available methods: {AVAILABLE_METHODS}"
         )
 
+    # Check if index is sorted chronologically
+    if not effects.index.is_monotonic_increasing:
+        warnings.warn(
+            "effects index is not sorted chronologically. "
+            "Data will be sorted automatically. "
+            "To suppress this warning, sort your data before passing to link().",
+            FutureWarning,
+            stacklevel=2
+        )
+        # Sort all inputs by index
+        effects = effects.sort_index()
+        portfolio_returns = portfolio_returns.sort_index()
+        benchmark_returns = benchmark_returns.sort_index()
+
     # Normalize inputs based on unit
     effects_normalized = normalize_effects(effects, unit)
     portfolio_normalized = normalize_returns(portfolio_returns, unit)
