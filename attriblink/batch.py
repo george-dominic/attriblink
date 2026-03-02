@@ -95,34 +95,32 @@ def link_batch(
             check_effects_sum=check_effects_sum,
         )
 
-        # Build the output row for this group
-        # Get the total row (linked effects) from result.data
+        # Get the final/as-of date (last date in the sorted group)
+        as_of_date = group_data[date_col].iloc[-1]
+
+        # Get cumulative/geometrically linked returns
+        # The link function already computes this - we get it from result.data at 'Total' row
         result_data = result.data
+        
+        # Extract portfolio, benchmark, and active returns (cumulative)
+        portfolio_return = result_data.loc['Total', 'Portfolio Return']
+        benchmark_return = result_data.loc['Total', 'Benchmark Return']
+        active_return = result_data.loc['Total', 'Active Return']
 
-        # Extract period data (all rows except 'Total')
-        period_data = result_data.drop(index='Total', errors='ignore')
-
-        # Build output DataFrame for this group
-        output_df = pd.DataFrame({
-            'DATE': group_data[date_col].values,
+        # Build output row for this group (one row per fund)
+        output_row = {
+            'DATE': as_of_date,
             'FUND_ID': group_name,
-            'portfolio_return': period_data['Portfolio Return'].values,
-            'benchmark_return': period_data['Benchmark Return'].values,
-            'active_return': period_data['Active Return'].values,
-        })
+            'portfolio_return': portfolio_return,
+            'benchmark_return': benchmark_return,
+            'active_return': active_return,
+        }
 
-        # Add linked effect columns
+        # Add linked effect columns (from Total row)
         for effect_col in effects_cols:
-            # Get the linked effect value from the Total row
-            linked_value = result_data.loc['Total', effect_col]
-            # For each period, we could either:
-            # 1. Repeat the linked value (shows same total for each period)
-            # 2. Just show period-level effects
-            # Based on the requirements, let's include the linked effect 
-            # Repeat the linked total for each row (meaningful for comparison)
-            output_df[effect_col] = linked_value
+            output_row[effect_col] = result_data.loc['Total', effect_col]
 
-        results.append(output_df)
+        results.append(pd.DataFrame([output_row]))
 
     # Combine all group results
     combined = pd.concat(results, ignore_index=True)
