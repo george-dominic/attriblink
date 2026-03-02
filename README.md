@@ -134,7 +134,29 @@ The k-factor is a smoothing coefficient that scales attribution effects to achie
 
 The sum of linked effects always equals the cumulative excess return.
 
-## AttributionResult Methods
+## API
+
+### `link(effects, portfolio_returns, benchmark_returns, method='carino', unit='decimal', check_effects_sum=True, strict=False)`
+
+Links attribution effects across multiple periods.
+
+**Parameters:**
+- `effects` (pd.DataFrame): DataFrame where each column is an attribution effect (e.g., allocation, selection). Index must align with return series.
+- `portfolio_returns` (pd.Series): Portfolio returns for each period.
+- `benchmark_returns` (pd.Series): Benchmark returns for each period.
+- `method` (str): Linking method to use. Currently only "carino" is supported.
+- `unit` (str): Unit of input effects and returns. Options: "decimal" (default), "bps" (basis points), "percent".
+- `check_effects_sum` (bool): If True, validates that period-by-period effects sum to period-by-period excess returns. Default is True.
+- `strict` (bool): If True and `check_effects_sum` is True, raises `EffectsSumMismatchError` when effects don't sum to excess. If False, issues a UserWarning but continues. Default is False.
+
+**Returns:**
+- `AttributionResult`: An object containing linked effects and attribution data.
+
+**Raises:**
+- `AttributionError`: If inputs are invalid or misaligned.
+- `EffectsSumMismatchError`: If effects don't sum to excess return and `strict=True`.
+
+### Understanding the AttributionResult object
 
 The `link()` function returns an `AttributionResult` object with useful methods:
 
@@ -172,41 +194,6 @@ result['allocation']  # Returns the linked allocation effect
 result['selection']  # Returns the linked selection effect
 ```
 
-## Understanding link_batch Output
-
-`link_batch()` returns a **DataFrame directly** (not AttributionResult), with one row per fund at the as-of date:
-
-| Column | Description |
-|--------|-------------|
-| DATE | As-of date (last date in the period) |
-| FUND_ID | Fund identifier |
-| portfolio_return | Cumulative/geometrically linked portfolio return |
-| benchmark_return | Cumulative benchmark return |
-| active_return | Portfolio - Benchmark (at as-of) |
-| allocation, selection, ... | Linked effect values |
-
-## API
-
-### `link(effects, portfolio_returns, benchmark_returns, method='carino', unit='decimal', check_effects_sum=True, strict=False)`
-
-Links attribution effects across multiple periods.
-
-**Parameters:**
-- `effects` (pd.DataFrame): DataFrame where each column is an attribution effect (e.g., allocation, selection). Index must align with return series.
-- `portfolio_returns` (pd.Series): Portfolio returns for each period.
-- `benchmark_returns` (pd.Series): Benchmark returns for each period.
-- `method` (str): Linking method to use. Currently only "carino" is supported.
-- `unit` (str): Unit of input effects and returns. Options: "decimal" (default), "bps" (basis points), "percent".
-- `check_effects_sum` (bool): If True, validates that period-by-period effects sum to period-by-period excess returns. Default is True.
-- `strict` (bool): If True and `check_effects_sum` is True, raises `EffectsSumMismatchError` when effects don't sum to excess. If False, issues a UserWarning but continues. Default is False.
-
-**Returns:**
-- `AttributionResult`: An object containing linked effects and attribution data.
-
-**Raises:**
-- `AttributionError`: If inputs are invalid or misaligned.
-- `EffectsSumMismatchError`: If effects don't sum to excess return and `strict=True`.
-
 ### `link_batch(data, group_by, date_col, effects_cols, portfolio_col, benchmark_col, unit='decimal', method='carino', check_effects_sum=True)`
 
 Process attribution for multiple funds from a single DataFrame.
@@ -224,6 +211,19 @@ Process attribution for multiple funds from a single DataFrame.
 
 **Returns:**
 - `pd.DataFrame`: Combined DataFrame with DATE, FUND_ID, portfolio_return, benchmark_return, active_return, and linked effect columns.
+
+### Understanding link_batch Output
+
+`link_batch()` returns a **DataFrame directly** (not AttributionResult), with one row per fund at the as-of date:
+
+| Column | Description |
+|--------|-------------|
+| DATE | As-of date (last date in the period) |
+| FUND_ID | Fund identifier |
+| portfolio_return | Cumulative/geometrically linked portfolio return |
+| benchmark_return | Cumulative benchmark return |
+| active_return | Portfolio - Benchmark (at as-of) |
+| allocation, selection, ... | Linked effect values |
 
 **Validation Behavior:**
 By default, the function validates that each period's effects sum to that period's excess return (portfolio - benchmark). This helps catch attribution errors early. Use `check_effects_sum=False` to disable this check for legacy data or when using custom scaling.

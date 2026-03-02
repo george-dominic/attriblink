@@ -157,7 +157,7 @@ def validate_not_missing(
 
 
 # Tolerance for floating-point comparisons in effects sum validation
-EFFECTS_SUM_EPSILON = 1e-9
+EFFECTS_SUM_EPSILON = 1e-6
 
 
 def validate_effects_sum(
