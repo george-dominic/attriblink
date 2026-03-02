@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from .batch import link_batch
 from .core import link
 from .exceptions import (
     AlignmentError,
@@ -15,11 +16,13 @@ from .exceptions import (
     ZeroExcessReturnError,
 )
 from .result import AttributionResult
+from .utils.math import Unit
 
 __version__ = "0.2.0"
 
 __all__ = [
     "link",
+    "link_batch",
     "AttributionResult",
     "AttributionError",
     "AlignmentError",
@@ -28,4 +31,5 @@ __all__ = [
     "InvalidMethodError",
     "InvalidReturnsError",
     "ZeroExcessReturnError",
+    "Unit",
 ]

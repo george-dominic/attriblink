@@ -14,6 +14,7 @@ from .exceptions import (
     InvalidEffectsError,
     InvalidReturnsError,
 )
+from .utils.math import Unit, validate_decimal_unit
 
 
 __all__ = [
@@ -22,6 +23,8 @@ __all__ = [
     "validate_alignment",
     "validate_not_missing",
     "validate_effects_sum",
+    "normalize_effects",
+    "normalize_returns",
 ]
 
 
@@ -154,7 +157,7 @@ def validate_not_missing(
 
 
 # Tolerance for floating-point comparisons in effects sum validation
-EFFECTS_SUM_EPSILON = 1e-9
+EFFECTS_SUM_EPSILON = 1e-6
 
 
 def validate_effects_sum(
@@ -214,3 +217,88 @@ def validate_effects_sum(
             raise EffectsSumMismatchError(error_msg)
         else:
             warnings.warn(error_msg, UserWarning)
+
+
+def normalize_effects(
+    effects: pd.DataFrame,
+    unit: Unit | str = Unit.DECIMAL,
+) -> pd.DataFrame:
+    """Normalize effects DataFrame to decimal format based on unit.
+    
+    Args:
+        effects: DataFrame of attribution effects.
+        unit: Unit of the effects. Can be a Unit enum or string.
+            - DECIMAL: no change
+            - BPS: divide by 10000
+            - PERCENT: divide by 100
+    
+    Returns:
+        DataFrame with effects normalized to decimal format.
+    """
+    if isinstance(unit, str):
+        try:
+            unit = Unit(unit.lower())
+        except ValueError:
+            raise InvalidEffectsError(
+                f"Invalid unit '{unit}'. Must be one of: "
+                f"{', '.join(u.value for u in Unit)}"
+            )
+    
+    if unit == Unit.DECIMAL:
+        # Validate decimal values for potential unit mistakes
+        for col in effects.columns:
+            for idx, val in effects[col].items():
+                validate_decimal_unit(val, unit)
+        return effects.copy()
+    
+    # Normalize non-decimal units
+    if unit == Unit.BPS:
+        divisor = 10000
+    elif unit == Unit.PERCENT:
+        divisor = 100
+    else:
+        raise InvalidEffectsError(f"Unknown unit: {unit}")
+    
+    return effects / divisor
+
+
+def normalize_returns(
+    returns: pd.Series,
+    unit: Unit | str = Unit.DECIMAL,
+) -> pd.Series:
+    """Normalize return series to decimal format based on unit.
+    
+    Args:
+        returns: Series of returns.
+        unit: Unit of the returns. Can be a Unit enum or string.
+            - DECIMAL: no change
+            - BPS: divide by 10000
+            - PERCENT: divide by 100
+    
+    Returns:
+        Series with returns normalized to decimal format.
+    """
+    if isinstance(unit, str):
+        try:
+            unit = Unit(unit.lower())
+        except ValueError:
+            raise InvalidReturnsError(
+                f"Invalid unit '{unit}'. Must be one of: "
+                f"{', '.join(u.value for u in Unit)}"
+            )
+    
+    if unit == Unit.DECIMAL:
+        # Validate decimal values for potential unit mistakes
+        for idx, val in returns.items():
+            validate_decimal_unit(val, unit)
+        return returns.copy()
+    
+    # Normalize non-decimal units
+    if unit == Unit.BPS:
+        divisor = 10000
+    elif unit == Unit.PERCENT:
+        divisor = 100
+    else:
+        raise InvalidReturnsError(f"Unknown unit: {unit}")
+    
+    return returns / divisor

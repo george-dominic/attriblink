@@ -508,6 +508,163 @@ for i, (p, b) in enumerate([(portfolio1, benchmark1),
     print(f"  → {'k < 1: Consistent' if result['k_factor'] < 1 else 'k > 1: Volatile'}")
 ```
 
+### Example 6: Basic link() with Decimal Input
+
+```python
+import pandas as pd
+from attriblink import link
+
+# Simple monthly data with decimal returns (e.g., 0.02 = 2%)
+portfolio_returns = pd.Series(
+    [0.02, 0.03, 0.015],
+    index=pd.date_range("2024-01-01", periods=3, freq="ME")
+)
+benchmark_returns = pd.Series(
+    [0.015, 0.025, 0.01],
+    index=portfolio_returns.index
+)
+
+# Attribution effects (decimal format)
+effects = pd.DataFrame({
+    "allocation": [0.004, 0.003, 0.003],
+    "selection":  [0.002, 0.003, 0.003]
+}, index=portfolio.index)
+
+# Link effects (default: unit="decimal")
+result = link(effects, portfolio_returns, benchmark_returns)
+
+print(result.summary())
+print(f"\nLinked effects: {result.linked_effects.to_dict()}")
+```
+
+### Example 7: link() with BPS Input
+
+```python
+import pandas as pd
+from attriblink import link
+
+# Returns in basis points (e.g., 200 = 2%)
+portfolio_returns = pd.Series(
+    [200, 300, 150],  # 2%, 3%, 1.5%
+    index=pd.date_range("2024-01-01", periods=3, freq="ME")
+)
+benchmark_returns = pd.Series(
+    [150, 250, 100],  # 1.5%, 2.5%, 1%
+    index=portfolio_returns.index
+)
+
+# Attribution effects in basis points
+effects = pd.DataFrame({
+    "allocation": [40, 30, 35],
+    "selection":  [20, 30, 25]
+}, index=portfolio_returns.index)
+
+# Link with bps unit - library handles conversion automatically
+result = link(effects, portfolio_returns, benchmark_returns, unit="bps")
+
+print(result.summary())
+print(f"\nLinked effects (decimal): {result.linked_effects.to_dict()}")
+# Linked effects are converted back to input unit (bps)
+```
+
+### Example 8: link() with Percent Input
+
+```python
+import pandas as pd
+from attriblink import link
+
+# Returns in percent (e.g., 2 = 2%)
+portfolio_returns = pd.Series(
+    [2.0, 3.0, 1.5],
+    index=pd.date_range("2024-01-01", periods=3, freq="ME")
+)
+benchmark_returns = pd.Series(
+    [1.5, 2.5, 1.0],
+    index=portfolio_returns.index
+)
+
+# Attribution effects in percent
+effects = pd.DataFrame({
+    "allocation": [0.4, 0.3, 0.35],
+    "selection":  [0.2, 0.3, 0.25]
+}, index=portfolio_returns.index)
+
+# Link with percent unit
+result = link(effects, portfolio_returns, benchmark_returns, unit="percent")
+
+print(result.summary())
+```
+
+### Example 9: link_batch() with Long-Format DataFrame
+
+```python
+import pandas as pd
+from attriblink import link_batch
+
+# Long-format DataFrame with multiple funds
+data = pd.DataFrame({
+    'FUND_ID': ['FUND_A', 'FUND_A', 'FUND_A', 'FUND_B', 'FUND_B', 'FUND_B'],
+    'DATE': ['2024-01-31', '2024-02-29', '2024-03-31',
+             '2024-01-31', '2024-02-29', '2024-03-31'],
+    'allocation': [0.005, 0.008, 0.004, 0.003, 0.006, 0.005],
+    'selection': [0.003, 0.005, 0.002, 0.002, 0.004, 0.003],
+    'portfolio': [0.02, 0.03, 0.015, 0.018, 0.025, 0.02],
+    'benchmark': [0.015, 0.02, 0.012, 0.012, 0.018, 0.014],
+})
+
+# Apply linking to each fund group
+result = link_batch(
+    data,
+    group_by='FUND_ID',
+    date_col='DATE',
+    effects_cols=['allocation', 'selection'],
+    portfolio_col='portfolio',
+    benchmark_col='benchmark',
+)
+
+print(result)
+# Output:
+#          DATE FUND_ID  portfolio_return  benchmark_return  active_return  allocation  selection
+# 0  2024-01-31  FUND_A             0.020             0.015            0.005    0.010298    0.006865
+# 1  2024-02-29  FUND_A             0.030             0.020            0.010    0.010298    0.006865
+# 2  2024-03-31  FUND_A             0.015             0.012            0.003    0.010298    0.006865
+# 3  2024-01-31  FUND_B             0.018             0.012            0.006    0.007078    0.005299
+# 4  2024-02-29  FUND_B             0.025             0.018            0.007    0.007078    0.005299
+# 5  2024-03-31  FUND_B             0.020             0.014            0.006    0.007078    0.005299
+```
+
+### Example 10: link_batch() with BPS and Validation Disabled
+
+```python
+import pandas as pd
+from attriblink import link_batch
+
+# Long-format data with multiple funds in basis points
+data = pd.DataFrame({
+    'FUND_ID': ['FUND_A', 'FUND_A', 'FUND_B', 'FUND_B'],
+    'DATE': ['2024-01-31', '2024-02-29', '2024-01-31', '2024-02-29'],
+    'allocation': [50, 80, 40, 60],
+    'selection': [30, 50, 20, 40],
+    'portfolio': [200, 300, 180, 250],
+    'benchmark': [150, 200, 120, 180],
+})
+
+# Apply linking with BPS unit and validation disabled
+result = link_batch(
+    data,
+    group_by='FUND_ID',
+    date_col='DATE',
+    effects_cols=['allocation', 'selection'],
+    portfolio_col='portfolio',
+    benchmark_col='benchmark',
+    unit='bps',
+    check_effects_sum=False,  # Skip validation for demo data
+)
+
+print(result)
+# Each fund gets its own linked effects computed separately
+```
+
 ---
 
 ## Changelog
@@ -555,9 +712,26 @@ def link(
     portfolio_returns: pd.Series,
     benchmark_returns: pd.Series,
     method: str = "carino",
+    unit: str = "decimal",
     check_effects_sum: bool = True,
     strict: bool = False,
 ) -> AttributionResult
+```
+
+### `link_batch()`
+
+```python
+def link_batch(
+    data: pd.DataFrame,
+    group_by: str,
+    date_col: str,
+    effects_cols: list[str],
+    portfolio_col: str,
+    benchmark_col: str,
+    unit: str = "decimal",
+    method: str = "carino",
+    check_effects_sum: bool = True,
+) -> pd.DataFrame
 ```
 
 ### `AttributionResult`

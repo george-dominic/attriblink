@@ -10,7 +10,10 @@ import pandas as pd
 from . import methods
 from .exceptions import EffectsSumMismatchError, InvalidMethodError
 from .result import AttributionResult
+from .utils.math import Unit
 from .validators import (
+    normalize_effects,
+    normalize_returns,
     validate_alignment,
     validate_effects,
     validate_effects_sum,
@@ -33,6 +36,7 @@ def link(
     portfolio_returns: pd.Series,
     benchmark_returns: pd.Series,
     method: str = "carino",
+    unit: Unit | str = "decimal",
     check_effects_sum: bool = True,
     strict: bool = False,
 ) -> AttributionResult:
@@ -49,6 +53,11 @@ def link(
         portfolio_returns: Series of portfolio returns for each period.
         benchmark_returns: Series of benchmark returns for each period.
         method: Linking method to use. Currently only "carino" is supported.
+        unit: Unit of the input effects and returns. Can be:
+            - "decimal": values as decimals (e.g., 0.02 for 2%)
+            - "bps": values in basis points (e.g., 200 for 2%)
+            - "percent": values in percent (e.g., 2 for 2%)
+            Default is "decimal" for backward compatibility.
         check_effects_sum: If True, validates that period-by-period effects
             sum to period-by-period excess returns. Default is True.
         strict: If True and check_effects_sum is True, raises an error when
@@ -79,6 +88,11 @@ def link(
         >>> effects = pd.DataFrame({"allocation": [0.005, 0.008], "selection": [0.002, 0.005]}, index=portfolio.index)
         >>> result = link(effects, portfolio, benchmark, method="carino")
         >>> print(result.summary())
+        
+    Example with BPS input:
+        >>> # Effects in basis points (e.g., 50 bps = 0.50%)
+        >>> effects_bps = pd.DataFrame({"allocation": [50, 80], "selection": [20, 50]}, index=portfolio.index)
+        >>> result = link(effects_bps, portfolio, benchmark, unit="bps")
     """
     # Validate method
     if method not in AVAILABLE_METHODS:
@@ -86,21 +100,42 @@ def link(
             f"Unknown method '{method}'. Available methods: {AVAILABLE_METHODS}"
         )
 
-    # Validate inputs
-    validate_effects(effects)
-    validate_returns(portfolio_returns, "portfolio_returns")
-    validate_returns(benchmark_returns, "benchmark_returns")
-    validate_alignment(effects, portfolio_returns, benchmark_returns)
-    validate_not_missing(effects, portfolio_returns, benchmark_returns)
+    # Check if index is sorted chronologically
+    if not effects.index.is_monotonic_increasing:
+        warnings.warn(
+            "effects index is not sorted chronologically. "
+            "Data will be sorted automatically. "
+            "To suppress this warning, sort your data before passing to link().",
+            FutureWarning,
+            stacklevel=2
+        )
+        # Sort all inputs by index
+        effects = effects.sort_index()
+        portfolio_returns = portfolio_returns.sort_index()
+        benchmark_returns = benchmark_returns.sort_index()
+
+    # Normalize inputs based on unit
+    effects_normalized = normalize_effects(effects, unit)
+    portfolio_normalized = normalize_returns(portfolio_returns, unit)
+    benchmark_normalized = normalize_returns(benchmark_returns, unit)
+
+    # Validate normalized inputs
+    validate_effects(effects_normalized)
+    validate_returns(portfolio_normalized, "portfolio_returns")
+    validate_returns(benchmark_normalized, "benchmark_returns")
+    validate_alignment(effects_normalized, portfolio_normalized, benchmark_normalized)
+    validate_not_missing(effects_normalized, portfolio_normalized, benchmark_normalized)
 
     # Validate effects sum to excess return if enabled
     if check_effects_sum:
-        validate_effects_sum(effects, portfolio_returns, benchmark_returns, strict=strict)
+        validate_effects_sum(
+            effects_normalized, portfolio_normalized, benchmark_normalized, strict=strict
+        )
 
     # Apply the linking method
     if method == "carino":
         linked_series, k_factor = methods.carino_link(
-            effects, portfolio_returns, benchmark_returns, return_k=True
+            effects_normalized, portfolio_normalized, benchmark_normalized, return_k=True
         )
 
     return AttributionResult(

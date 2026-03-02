@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "attriblink"
-version = "0.1.1"
+version = "0.1.2"
 description = "Multi-period attribution linking for portfolio returns"
 readme = "README.md"
 license = { text = "MIT" }
@@ -25,7 +25,6 @@ classifiers = [
 dependencies = [
     "numpy>=1.26.0",
     "pandas>=2.0.0",
-    "pytest>=9.0.2",
 ]
 
 [project.optional-dependencies]
