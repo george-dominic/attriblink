@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from .batch import link_batch
 from .core import link
 from .exceptions import (
     AlignmentError,
@@ -21,6 +22,7 @@ __version__ = "0.2.0"
 
 __all__ = [
     "link",
+    "link_batch",
     "AttributionResult",
     "AttributionError",
     "AlignmentError",
