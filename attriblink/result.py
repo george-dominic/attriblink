@@ -32,6 +32,7 @@ class AttributionResult:
         portfolio_returns: pd.Series,
         benchmark_returns: pd.Series,
         effects: pd.DataFrame,
+        unit: str = "decimal",
     ) -> None:
         """Initialize AttributionResult.
         
@@ -41,12 +42,18 @@ class AttributionResult:
             portfolio_returns: Original portfolio return series.
             benchmark_returns: Original benchmark return series.
             effects: Original effects DataFrame.
+            unit: Unit of input data ('decimal', 'bps', or 'percent').
         """
         self._linked_effects = linked_effects
         self._k_factor = k_factor
         self._portfolio_returns = portfolio_returns
         self._benchmark_returns = benchmark_returns
         self._effects = effects
+        
+        # Normalize unit to string
+        if hasattr(unit, 'value'):
+            unit = unit.value
+        self._unit = str(unit).lower()
 
     @property
     def data(self) -> pd.DataFrame:
@@ -60,10 +67,27 @@ class AttributionResult:
         # Get period indices
         periods = [str(i) for i in self._effects.index]
         
+        # Normalize returns for calculation based on unit
+        if self._unit == "bps":
+            factor = 10000
+        elif self._unit == "percent":
+            factor = 100
+        else:  # decimal
+            factor = 1
+        
+        # Normalize returns for geometric calculation
+        portfolio_dec = self._portfolio_returns / factor
+        benchmark_dec = self._benchmark_returns / factor
+        
         # Calculate geometric linked returns for totals
-        total_port = (1 + self._portfolio_returns).prod() - 1
-        total_bench = (1 + self._benchmark_returns).prod() - 1
+        total_port = (1 + portfolio_dec).prod() - 1
+        total_bench = (1 + benchmark_dec).prod() - 1
         total_active = total_port - total_bench
+        
+        # Convert back to original unit
+        total_port = total_port * factor
+        total_bench = total_bench * factor
+        total_active = total_active * factor
         
         # Build column order: Portfolio, Benchmark, Active, effects
         effect_cols = list(self._effects.columns)
@@ -89,7 +113,7 @@ class AttributionResult:
             'Benchmark Return': total_bench,
             'Active Return': total_active,
         }
-        # Total for each effect = Carino linked effect
+        # Total for each effect = Carino linked effect (already in original unit)
         for effect in effect_cols:
             total_row[effect] = self._linked_effects[effect]
         
