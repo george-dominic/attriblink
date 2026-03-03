@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "attriblink"
-version = "0.1.4"
+version = "0.1.5"
 description = "Multi-period attribution linking for portfolio returns"
 readme = "README.md"
 license = { text = "MIT" }

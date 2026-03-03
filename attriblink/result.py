@@ -55,6 +55,45 @@ class AttributionResult:
             unit = unit.value
         self._unit = str(unit).lower()
 
+    def _detect_dayfirst(self) -> bool:
+        """Auto-detect if dates should be parsed with dayfirst=True.
+        
+        Checks the first few index values to determine if they're in
+        European (dd/mm/yyyy) or US (mm/dd/yyyy) format.
+        """
+        import re
+        
+        # Get sample dates from index
+        sample_dates = []
+        for idx in self._effects.index[:3]:
+            sample_dates.append(str(idx))
+        
+        # Check each date
+        dayfirst_indicators = 0
+        us_indicators = 0
+        
+        for date_str in sample_dates:
+            # Skip if already datetime or numeric
+            if isinstance(date_str, (pd.Timestamp, int, float)):
+                continue
+                
+            # Match patterns like dd/mm/yyyy or mm/dd/yyyy
+            match = re.match(r'^(\d{1,2})[-/](\d{1,2})[-/](\d{2,4})$', date_str)
+            if match:
+                p1, p2 = int(match.group(1)), int(match.group(2))
+                
+                # If first part > 12, it must be day (European)
+                if p1 > 12:
+                    dayfirst_indicators += 1
+                # If second part > 12 and first <= 12, it's US format
+                elif p2 > 12:
+                    us_indicators += 1
+        
+        # Majority wins
+        if dayfirst_indicators > us_indicators:
+            return True
+        return False  # Default to US/ISO
+
     @property
     def data(self) -> pd.DataFrame:
         """Get the full DataFrame with all attribution data.
@@ -64,14 +103,27 @@ class AttributionResult:
         - Columns ordered: Portfolio Return, Benchmark Return, Active Return, [effects...]
         - A 'Total' row at the bottom contains geometric linked returns
         """
-        # Sort by datetime index (chronologically), not string
-        sorted_idx = self._effects.index.to_series().sort_values().index
-        effects_sorted = self._effects.loc[sorted_idx]
-        portfolio_sorted = self._portfolio_returns.loc[sorted_idx]
-        benchmark_sorted = self._benchmark_returns.loc[sorted_idx]
-        
-        # Get period indices
-        periods = [str(i) for i in effects_sorted.index]
+        # Sort by datetime index (chronologically), converting strings to datetime first
+        try:
+            # Auto-detect date format (US vs European)
+            dayfirst = self._detect_dayfirst()
+            # Convert to datetime for sorting, but keep track of original order
+            dates_as_dt = pd.to_datetime(self._effects.index, dayfirst=dayfirst)
+            # Get the sorted positions
+            sorted_positions = pd.Series(range(len(dates_as_dt)), index=dates_as_dt).sort_index().values
+            original_order = pd.Series(self._effects.index).iloc[sorted_positions].values
+            # Reorder using original index type
+            effects_sorted = self._effects.loc[original_order]
+            portfolio_sorted = self._portfolio_returns.loc[original_order]
+            benchmark_sorted = self._benchmark_returns.loc[original_order]
+            periods = [str(i) for i in effects_sorted.index]
+        except (ValueError, TypeError):
+            # If conversion fails, fall back to original sorting
+            sorted_idx = self._effects.index.to_series().sort_values().index
+            effects_sorted = self._effects.loc[sorted_idx]
+            portfolio_sorted = self._portfolio_returns.loc[sorted_idx]
+            benchmark_sorted = self._benchmark_returns.loc[sorted_idx]
+            periods = [str(i) for i in effects_sorted.index]
         
         # Normalize returns for calculation based on unit
         if self._unit == "bps":
@@ -192,7 +244,14 @@ class AttributionResult:
     def _format_row_label(self, idx: Any) -> str:
         """Format index value as row label (date or period)."""
         try:
-            dt = pd.to_datetime(idx)
+            # If already datetime-like, don't re-convert
+            if isinstance(idx, (pd.Timestamp, pd.Period)):
+                return idx.strftime('%b %Y')
+            if isinstance(idx, (pd.DatetimeIndex, pd.PeriodIndex)):
+                return idx[0].strftime('%b %Y')
+            # For strings or other types, try to parse with dayfirst=True
+            # (common in international finance)
+            dt = pd.to_datetime(idx, dayfirst=True)
             return dt.strftime('%b %Y')
         except Exception:
             return str(idx)
@@ -207,11 +266,20 @@ class AttributionResult:
         Returns:
             Formatted string with the attribution summary table.
         """
-        # Sort by datetime index (chronologically), not string
-        sorted_idx = self._effects.index.to_series().sort_values().index
-        effects_sorted = self._effects.loc[sorted_idx]
-        portfolio_sorted = self._portfolio_returns.loc[sorted_idx]
-        benchmark_sorted = self._benchmark_returns.loc[sorted_idx]
+        # Sort by datetime index (chronologically), converting strings to datetime first
+        try:
+            dayfirst = self._detect_dayfirst()
+            dates_as_dt = pd.to_datetime(self._effects.index, dayfirst=dayfirst)
+            sorted_positions = pd.Series(range(len(dates_as_dt)), index=dates_as_dt).sort_index().values
+            original_order = pd.Series(self._effects.index).iloc[sorted_positions].values
+            effects_sorted = self._effects.loc[original_order]
+            portfolio_sorted = self._portfolio_returns.loc[original_order]
+            benchmark_sorted = self._benchmark_returns.loc[original_order]
+        except (ValueError, TypeError):
+            sorted_idx = self._effects.index.to_series().sort_values().index
+            effects_sorted = self._effects.loc[sorted_idx]
+            portfolio_sorted = self._portfolio_returns.loc[sorted_idx]
+            benchmark_sorted = self._benchmark_returns.loc[sorted_idx]
         
         # Get conversion factor based on unit
         if self._unit == "bps":
@@ -243,7 +311,7 @@ class AttributionResult:
 
         # Compute column widths - fit decimal values (e.g. "  -0.0123")
         col_width = 11
-        label_width = max(12, max(len(self._format_row_label(i)) for i in sorted_idx) + 2, 6)
+        label_width = max(12, max(len(self._format_row_label(i)) for i in effects_sorted.index) + 2, 6)
 
         # Short display names for long column headers
         col_display = {
