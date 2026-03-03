@@ -60,12 +60,18 @@ class AttributionResult:
         """Get the full DataFrame with all attribution data.
         
         Returns a DataFrame where:
-        - Each period is a row
+        - Each period is a row (sorted chronologically)
         - Columns ordered: Portfolio Return, Benchmark Return, Active Return, [effects...]
         - A 'Total' row at the bottom contains geometric linked returns
         """
+        # Sort by datetime index (chronologically), not string
+        sorted_idx = self._effects.index.to_series().sort_values().index
+        effects_sorted = self._effects.loc[sorted_idx]
+        portfolio_sorted = self._portfolio_returns.loc[sorted_idx]
+        benchmark_sorted = self._benchmark_returns.loc[sorted_idx]
+        
         # Get period indices
-        periods = [str(i) for i in self._effects.index]
+        periods = [str(i) for i in effects_sorted.index]
         
         # Normalize returns for calculation based on unit
         if self._unit == "bps":
@@ -75,9 +81,9 @@ class AttributionResult:
         else:  # decimal
             factor = 1
         
-        # Normalize returns for geometric calculation
-        portfolio_dec = self._portfolio_returns / factor
-        benchmark_dec = self._benchmark_returns / factor
+        # Normalize returns for geometric calculation (using sorted data)
+        portfolio_dec = portfolio_sorted / factor
+        benchmark_dec = benchmark_sorted / factor
         
         # Calculate geometric linked returns for totals
         total_port = (1 + portfolio_dec).prod() - 1
@@ -98,13 +104,13 @@ class AttributionResult:
         
         for i, period in enumerate(periods):
             row: dict[str, float] = {
-                'Portfolio Return': self._portfolio_returns.iloc[i],
-                'Benchmark Return': self._benchmark_returns.iloc[i],
-                'Active Return': self._portfolio_returns.iloc[i] - self._benchmark_returns.iloc[i],
+                'Portfolio Return': portfolio_sorted.iloc[i],
+                'Benchmark Return': benchmark_sorted.iloc[i],
+                'Active Return': portfolio_sorted.iloc[i] - benchmark_sorted.iloc[i],
             }
             # Add each effect for this period
             for effect in effect_cols:
-                row[effect] = self._effects[effect].iloc[i]
+                row[effect] = effects_sorted[effect].iloc[i]
             rows_data.append(row)
         
         # Add Total row at bottom with geometric linked values
@@ -201,6 +207,12 @@ class AttributionResult:
         Returns:
             Formatted string with the attribution summary table.
         """
+        # Sort by datetime index (chronologically), not string
+        sorted_idx = self._effects.index.to_series().sort_values().index
+        effects_sorted = self._effects.loc[sorted_idx]
+        portfolio_sorted = self._portfolio_returns.loc[sorted_idx]
+        benchmark_sorted = self._benchmark_returns.loc[sorted_idx]
+        
         # Get conversion factor based on unit
         if self._unit == "bps":
             factor = 10000
@@ -210,8 +222,8 @@ class AttributionResult:
             factor = 1
         
         # Convert returns to decimal for geometric calculation, then back to original unit
-        portfolio_dec = self._portfolio_returns / factor
-        benchmark_dec = self._benchmark_returns / factor
+        portfolio_dec = portfolio_sorted / factor
+        benchmark_dec = benchmark_sorted / factor
         
         # Compute totals (geometric linked returns)
         total_port = (1 + portfolio_dec).prod() - 1
@@ -231,7 +243,7 @@ class AttributionResult:
 
         # Compute column widths - fit decimal values (e.g. "  -0.0123")
         col_width = 11
-        label_width = max(12, max(len(self._format_row_label(i)) for i in self._effects.index) + 2, 6)
+        label_width = max(12, max(len(self._format_row_label(i)) for i in sorted_idx) + 2, 6)
 
         # Short display names for long column headers
         col_display = {
@@ -254,15 +266,15 @@ class AttributionResult:
         lines.append(header)
         lines.append("-" * (label_width + len(column_order) * col_width))
 
-        # Data rows - one row per period
-        for i in range(len(self._portfolio_returns)):
-            row_label = self._format_row_label(self._portfolio_returns.index[i])
+        # Data rows - one row per period (sorted)
+        for i in range(len(portfolio_sorted)):
+            row_label = self._format_row_label(portfolio_sorted.index[i])
             row = f"{row_label:<{label_width}}"
-            row += f"{self._format_value(self._portfolio_returns.iloc[i]):>{col_width}}"
-            row += f"{self._format_value(self._benchmark_returns.iloc[i]):>{col_width}}"
-            row += f"{self._format_value(self._portfolio_returns.iloc[i] - self._benchmark_returns.iloc[i]):>{col_width}}"
+            row += f"{self._format_value(portfolio_sorted.iloc[i]):>{col_width}}"
+            row += f"{self._format_value(benchmark_sorted.iloc[i]):>{col_width}}"
+            row += f"{self._format_value(portfolio_sorted.iloc[i] - benchmark_sorted.iloc[i]):>{col_width}}"
             for effect in effect_cols:
-                row += f"{self._format_value(self._effects[effect].iloc[i]):>{col_width}}"
+                row += f"{self._format_value(effects_sorted[effect].iloc[i]):>{col_width}}"
             lines.append(row)
 
         # Total row
