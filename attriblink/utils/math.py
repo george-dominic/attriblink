@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import warnings
 from decimal import Decimal
 from enum import Enum
 
@@ -72,52 +71,8 @@ def validate_decimal_unit(
     value: float | int | np.floating | np.integer,
     unit: Unit | str = Unit.DECIMAL,
 ) -> None:
-    """Warn if a value appears to be in the wrong unit.
-    
-    This helps catch potential unit mistakes where the user
-    passed a value in a different unit than specified.
-    
-    Args:
-        value: The value to check.
-        unit: The expected unit of the value.
-    """
-    # Convert string to Unit if needed
-    if isinstance(unit, str):
-        try:
-            unit = Unit(unit.lower())
-        except ValueError:
-            return  # Skip validation for invalid unit
-    
-    if unit == Unit.DECIMAL:
-        # For decimal unit, warn if value > 1 (likely bps or percent)
-        if abs(value) > 1:
-            warnings.warn(
-                f"Value {value} appears to be > 1 with unit='decimal'. "
-                f"Did you mean unit='bps' (divide by 10000) or "
-                f"unit='percent' (divide by 100)?",
-                UserWarning,
-                stacklevel=4
-            )
-    elif unit == Unit.BPS:
-        # For bps unit, warn if value < 1 (likely decimal)
-        # In bps, typical returns are > 1 (e.g., 50 bps = 0.5%)
-        if 0 <= value < 1 or (-1 < value < 0):
-            warnings.warn(
-                f"Value {value} appears to be < 1 with unit='bps'. "
-                f"Did you mean unit='decimal' (no conversion)?",
-                UserWarning,
-                stacklevel=4
-            )
-    elif unit == Unit.PERCENT:
-        # For percent unit, warn if value < 1 (likely decimal)
-        # In percent, typical returns are > 1 (e.g., 2% = 2)
-        if 0 <= value < 1 or (-1 < value < 0):
-            warnings.warn(
-                f"Value {value} appears to be < 1 with unit='percent'. "
-                f"Did you mean unit='decimal' (no conversion)?",
-                UserWarning,
-                stacklevel=4
-            )
+    """No-op validation - kept for API compatibility."""
+    pass
 
 
 def safe_log1p(x: np.ndarray, epsilon: float = DEFAULT_EPSILON) -> np.ndarray:
