@@ -119,6 +119,17 @@ def link(
     portfolio_normalized = normalize_returns(portfolio_returns, unit)
     benchmark_normalized = normalize_returns(benchmark_returns, unit)
 
+    # Get conversion factor for output (convert decimal back to original unit)
+    if isinstance(unit, str):
+        unit = Unit(unit.lower())
+    
+    if unit == Unit.BPS:
+        output_factor = 10000
+    elif unit == Unit.PERCENT:
+        output_factor = 100
+    else:  # DECIMAL
+        output_factor = 1
+
     # Validate normalized inputs
     validate_effects(effects_normalized)
     validate_returns(portfolio_normalized, "portfolio_returns")
@@ -138,10 +149,14 @@ def link(
             effects_normalized, portfolio_normalized, benchmark_normalized, return_k=True
         )
 
+    # Convert linked effects back to original unit
+    linked_series = linked_series * output_factor
+
     return AttributionResult(
         linked_effects=linked_series,
         k_factor=k_factor,
         portfolio_returns=portfolio_returns,
         benchmark_returns=benchmark_returns,
         effects=effects,
+        unit=unit,
     )
