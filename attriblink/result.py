@@ -201,10 +201,28 @@ class AttributionResult:
         Returns:
             Formatted string with the attribution summary table.
         """
+        # Get conversion factor based on unit
+        if self._unit == "bps":
+            factor = 10000
+        elif self._unit == "percent":
+            factor = 100
+        else:  # decimal
+            factor = 1
+        
+        # Convert returns to decimal for geometric calculation, then back to original unit
+        portfolio_dec = self._portfolio_returns / factor
+        benchmark_dec = self._benchmark_returns / factor
+        
         # Compute totals (geometric linked returns)
-        total_port = (1 + self._portfolio_returns).prod() - 1
-        total_bench = (1 + self._benchmark_returns).prod() - 1
+        total_port = (1 + portfolio_dec).prod() - 1
+        total_bench = (1 + benchmark_dec).prod() - 1
         total_active = total_port - total_bench
+        
+        # Convert back to original unit for display
+        total_port = total_port * factor
+        total_bench = total_bench * factor
+        total_active = total_active * factor
+        
         linked_effects_sum = self._linked_effects.sum()
 
         # Column order: Portfolio, Benchmark, Active, effects (same as data property)
