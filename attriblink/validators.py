@@ -251,6 +251,11 @@ def normalize_effects(
                 validate_decimal_unit(val, unit)
         return effects.copy()
     
+    # Validate bps/percent values for potential unit mistakes
+    for col in effects.columns:
+        for idx, val in effects[col].items():
+            validate_decimal_unit(val, unit)
+    
     # Normalize non-decimal units
     if unit == Unit.BPS:
         divisor = 10000
@@ -292,6 +297,10 @@ def normalize_returns(
         for idx, val in returns.items():
             validate_decimal_unit(val, unit)
         return returns.copy()
+    
+    # Validate bps/percent values for potential unit mistakes
+    for idx, val in returns.items():
+        validate_decimal_unit(val, unit)
     
     # Normalize non-decimal units
     if unit == Unit.BPS:
