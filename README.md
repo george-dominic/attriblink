@@ -1,6 +1,6 @@
 # attriblink
 
-![attriblink](./attriblink.jpg)
+![attriblink](./file_6---37fcd315-c529-4b6c-ad8e-7f9bbb5e2918.jpg)
 
 [![PyPI Version](https://img.shields.io/pypi/v/attriblink)](https://pypi.org/project/attriblink/)
 [![Python Versions](https://img.shields.io/pypi/pyversions/attriblink)](https://pypi.org/project/attriblink/)
