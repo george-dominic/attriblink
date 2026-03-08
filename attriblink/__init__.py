@@ -18,8 +18,6 @@ from .exceptions import (
 from .result import AttributionResult
 from .utils.math import Unit
 
-__version__ = "0.2.0"
-
 __all__ = [
     "link",
     "link_batch",

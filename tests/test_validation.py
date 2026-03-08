@@ -14,6 +14,7 @@ from attriblink.exceptions import (
     InvalidMethodError,
     InvalidReturnsError,
 )
+from attriblink.utils.math import safe_log1p
 from attriblink.validators import (
     validate_alignment,
     validate_effects,
@@ -292,3 +293,34 @@ class TestEffectsSumValidation:
             result = link(effects, portfolio, benchmark)
 
         assert result is not None
+
+
+class TestMathUtils:
+    """Tests for math utilities."""
+
+    def test_safe_log1p_valid_input(self):
+        """Test safe_log1p with valid positive input."""
+        result = safe_log1p(np.array([0.0, 0.01, 0.1, 0.5]))
+        expected = np.log1p([0.0, 0.01, 0.1, 0.5])
+        np.testing.assert_array_almost_equal(result, expected)
+
+    def test_safe_log1p_negative_small(self):
+        """Test safe_log1p with small negative values (valid)."""
+        result = safe_log1p(np.array([-0.5, -0.1, -0.01]))
+        expected = np.log1p([-0.5, -0.1, -0.01])
+        np.testing.assert_array_almost_equal(result, expected)
+
+    def test_safe_log1p_invalid_minus_one(self):
+        """Test safe_log1p raises on exactly -1 (log(0))."""
+        with pytest.raises(ValueError, match="Invalid returns <= -1"):
+            safe_log1p(np.array([-1.0]))
+
+    def test_safe_log1p_invalid_below_minus_one(self):
+        """Test safe_log1p raises on returns < -1 (impossible returns)."""
+        with pytest.raises(ValueError, match="Invalid returns <= -1"):
+            safe_log1p(np.array([-1.5, -2.0]))
+
+    def test_safe_log1p_invalid_mixed(self):
+        """Test safe_log1p raises when any value is <= -1."""
+        with pytest.raises(ValueError, match="Invalid returns <= -1"):
+            safe_log1p(np.array([0.01, -0.5, -1.5, 0.02]))

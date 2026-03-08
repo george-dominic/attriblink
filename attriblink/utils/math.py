@@ -75,22 +75,28 @@ def validate_decimal_unit(
     pass
 
 
-def safe_log1p(x: np.ndarray, epsilon: float = DEFAULT_EPSILON) -> np.ndarray:
-    """Compute log(1 + x) with safeguards for small/negative values.
+def safe_log1p(x: np.ndarray) -> np.ndarray:
+    """Compute log(1 + x) with domain validation.
 
-    Uses numpy.log1p for numerical stability with small x.
-    Clips negative values that would cause issues.
+    Raises ValueError if any value <= -1, as log(1 + x) is undefined
+    for x <= -1 (would be log(0) or log(negative)).
 
     Args:
         x: Input array.
-        epsilon: Small value for clipping.
 
     Returns:
-        Log of (1 + x), safely computed.
+        Log of (1 + x).
+
+    Raises:
+        ValueError: If any value in x is <= -1.
     """
-    # Clip to avoid log of negative numbers
-    x_clipped = np.clip(x, -1 + epsilon, None)
-    return np.log1p(x_clipped)
+    invalid = x <= -1
+    if np.any(invalid):
+        raise ValueError(
+            f"Invalid returns <= -1 at indices: {np.where(invalid)[0].tolist()}. "
+            f"Values: {x[invalid].tolist()}"
+        )
+    return np.log1p(x)
 
 
 def safe_expm1(x: np.ndarray) -> np.ndarray:

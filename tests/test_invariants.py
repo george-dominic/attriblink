@@ -151,9 +151,10 @@ class TestFloatingPointDrift:
         assert diff < 1e-10, f"Floating-point drift detected: {diff}"
 
     def test_no_drift_extreme_values(self):
-        """Test no drift with extreme return values."""
-        portfolio = pd.Series([10.0, -5.0, 3.0])
-        benchmark = pd.Series([5.0, -3.0, 1.0])
+        """Test no drift with extreme but realistic return values."""
+        # Use decimal returns (e.g., 0.10 = 10%), not raw percentages
+        portfolio = pd.Series([0.10, -0.05, 0.03])
+        benchmark = pd.Series([0.05, -0.03, 0.01])
 
         excess = portfolio - benchmark
         effects = pd.DataFrame(
