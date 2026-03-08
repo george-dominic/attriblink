@@ -2,11 +2,9 @@
 
 import numpy as np
 import pandas as pd
-import pytest
 
 from attriblink import link
-from attriblink.exceptions import ZeroExcessReturnError
-from attriblink.methods.carino import carino_link, get_k_factor
+from attriblink.methods.carino import get_k_factor
 
 
 class TestCarinoBasic:

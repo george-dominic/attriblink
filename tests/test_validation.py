@@ -18,7 +18,6 @@ from attriblink.utils.math import safe_log1p
 from attriblink.validators import (
     validate_alignment,
     validate_effects,
-    validate_effects_sum,
     validate_not_missing,
     validate_returns,
 )
@@ -218,8 +217,6 @@ class TestEffectsSumValidation:
 
     def test_effects_sum_mismatch_strict_true_raises_error(self):
         """Test that mismatch with strict=True raises error."""
-        import warnings
-        from attriblink.exceptions import EffectsSumMismatchError
 
         # Effects sum to 0.01 but excess is 0.02 - mismatch!
         portfolio = pd.Series([0.03, 0.04])  # excess = 0.02 + 0.03 = 0.05
@@ -234,7 +231,6 @@ class TestEffectsSumValidation:
     def test_effects_sum_mismatch_strict_false_warns(self):
         """Test that mismatch with strict=False issues warning."""
         import warnings
-        from attriblink.exceptions import EffectsSumMismatchError
 
         # Effects sum to 0.01 but excess is 0.05 - mismatch!
         portfolio = pd.Series([0.03, 0.04])  # excess = 0.02 + 0.03 = 0.05
@@ -258,7 +254,6 @@ class TestEffectsSumValidation:
     def test_check_effects_sum_disabled_no_warning(self):
         """Test that check_effects_sum=False skips validation."""
         import warnings
-        from attriblink.exceptions import EffectsSumMismatchError
 
         # Mismatch case
         portfolio = pd.Series([0.03, 0.04])

@@ -2,7 +2,6 @@
 
 import numpy as np
 import pandas as pd
-import pytest
 
 from attriblink import link
 from attriblink.result import AttributionResult
@@ -66,7 +65,6 @@ class TestAdditivityInvariant:
 
     def test_additivity_many_effects(self):
         """Test additivity with many effect columns."""
-        n_periods = 5
         n_effects = 20
 
         portfolio = pd.Series([0.02, 0.03, -0.01, 0.025, 0.015])

@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 import pandas as pd
 
 from . import methods
-from .exceptions import EffectsSumMismatchError, InvalidMethodError
+from .exceptions import InvalidMethodError
 from .result import AttributionResult
 from .utils.math import Unit
 from .validators import (
@@ -21,7 +21,7 @@ from .validators import (
 )
 
 if TYPE_CHECKING:
-    from numpy.typing import NDArray
+    pass
 
 
 AVAILABLE_METHODS = {"carino"}

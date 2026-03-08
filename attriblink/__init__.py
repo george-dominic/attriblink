@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 from .batch import link_batch
 from .core import link
 from .exceptions import (

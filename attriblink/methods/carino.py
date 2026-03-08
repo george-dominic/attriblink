@@ -187,9 +187,6 @@ def carino_link(
         residual_scale = cumulative_excess / np.sum(linked_effects)
         linked_effects = linked_effects * residual_scale
 
-    # Compute effective k-factor for transparency (k * residual_scale)
-    effective_k = k_factor * residual_scale
-
     # Preserve original index names from effects columns
     result = pd.Series(linked_effects, index=effects.columns, name="linked_effects")
 
