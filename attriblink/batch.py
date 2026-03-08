@@ -45,11 +45,14 @@ def link_batch(
     Returns:
         DataFrame with columns:
             - DATE: Dates from date_col
-            - FUND_ID: Group identifier (renamed from group_by column)
+            - {group_by}: Group identifier (uses the group_by column name)
             - portfolio_return: Portfolio return for each period
             - benchmark_return: Benchmark return for each period
             - active_return: Portfolio return - benchmark return
             - Linked effect columns (from effects_cols)
+
+    Raises:
+        ValueError: If input data is empty.
 
     Example:
         >>> import pandas as pd
@@ -110,7 +113,7 @@ def link_batch(
         # Build output row for this group (one row per fund)
         output_row = {
             'DATE': as_of_date,
-            'FUND_ID': group_name,
+            group_by: group_name,  # Use group_by column name, not hardcoded FUND_ID
             'portfolio_return': portfolio_return,
             'benchmark_return': benchmark_return,
             'active_return': active_return,
@@ -122,11 +125,16 @@ def link_batch(
 
         results.append(pd.DataFrame([output_row]))
 
+    # Handle empty input case - return empty DataFrame with correct schema
+    if not results:
+        column_order = [group_by, 'DATE', 'portfolio_return', 'benchmark_return', 'active_return'] + effects_cols
+        return pd.DataFrame(columns=column_order)
+
     # Combine all group results
     combined = pd.concat(results, ignore_index=True)
 
-    # Reorder columns: DATE, FUND_ID, returns, effects
-    column_order = ['DATE', 'FUND_ID', 'portfolio_return', 'benchmark_return', 'active_return'] + effects_cols
+    # Reorder columns: group_by, DATE, returns, effects
+    column_order = [group_by, 'DATE', 'portfolio_return', 'benchmark_return', 'active_return'] + effects_cols
     combined = combined[column_order]
 
     return combined

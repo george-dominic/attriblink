@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 from .batch import link_batch
 from .core import link
 from .exceptions import (
@@ -17,8 +15,6 @@ from .exceptions import (
 )
 from .result import AttributionResult
 from .utils.math import Unit
-
-__version__ = "0.2.0"
 
 __all__ = [
     "link",

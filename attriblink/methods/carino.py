@@ -177,16 +177,21 @@ def carino_link(
 
     # Ensure exact additivity by scaling to match geometric cumulative excess.
     # This handles edge cases where k-factor calculation is problematic.
+    # Note: This means effective_k = k * residual_scale, not just k_factor.
+    residual_scale = 1.0
     if (
         len(effect_sums) > 0
         and abs(np.sum(linked_effects)) > DEFAULT_EPSILON
         and abs(cumulative_excess) > DEFAULT_EPSILON
     ):
-        linked_effects = linked_effects * (cumulative_excess / np.sum(linked_effects))
+        residual_scale = cumulative_excess / np.sum(linked_effects)
+        linked_effects = linked_effects * residual_scale
 
     # Preserve original index names from effects columns
     result = pd.Series(linked_effects, index=effects.columns, name="linked_effects")
 
+    # Note: When residual scaling is applied, effective_k = k_factor * residual_scale
+    # ensures exact additivity. The returned k_factor is the pure Carino k.
     if return_k:
         return result, k_factor
     return result

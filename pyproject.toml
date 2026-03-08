@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "attriblink"
-version = "0.1.5"
+version = "0.1.6"
 description = "Multi-period attribution linking for portfolio returns"
 readme = "README.md"
 license = { text = "MIT" }
@@ -32,6 +32,7 @@ dev = [
     "pytest>=9.0.2",
     "pytest-cov>=7.0.0",
     "build>=1.0.0",
+    "ruff>=0.9.0",
 ]
 
 [tool.pytest.ini_options]

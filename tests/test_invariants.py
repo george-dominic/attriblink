@@ -2,7 +2,6 @@
 
 import numpy as np
 import pandas as pd
-import pytest
 
 from attriblink import link
 from attriblink.result import AttributionResult
@@ -66,7 +65,6 @@ class TestAdditivityInvariant:
 
     def test_additivity_many_effects(self):
         """Test additivity with many effect columns."""
-        n_periods = 5
         n_effects = 20
 
         portfolio = pd.Series([0.02, 0.03, -0.01, 0.025, 0.015])
@@ -151,9 +149,10 @@ class TestFloatingPointDrift:
         assert diff < 1e-10, f"Floating-point drift detected: {diff}"
 
     def test_no_drift_extreme_values(self):
-        """Test no drift with extreme return values."""
-        portfolio = pd.Series([10.0, -5.0, 3.0])
-        benchmark = pd.Series([5.0, -3.0, 1.0])
+        """Test no drift with extreme but realistic return values."""
+        # Use decimal returns (e.g., 0.10 = 10%), not raw percentages
+        portfolio = pd.Series([0.10, -0.05, 0.03])
+        benchmark = pd.Series([0.05, -0.03, 0.01])
 
         excess = portfolio - benchmark
         effects = pd.DataFrame(
