@@ -759,6 +759,3 @@ def link_batch(
 - Menchero, J. G. (2000). "An Optimized Approach to Linking Attribution Effects Over Time." *The Journal of Performance Measurement*.
 - Frongello, A. (2002). "A Methodology for Linking Decompensation." *The Journal of Performance Measurement*.
 
----
-
-*Documentation generated for attriblink v0.1.0*
