@@ -761,4 +761,3 @@ def link_batch(
 
 ---
 
-*Documentation generated for attriblink v0.1.0*

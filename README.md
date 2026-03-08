@@ -1,5 +1,7 @@
 # attriblink
 
+![attriblink](./attriblink.jpg)
+
 [![PyPI Version](https://img.shields.io/pypi/v/attriblink)](https://pypi.org/project/attriblink/)
 [![Python Versions](https://img.shields.io/pypi/pyversions/attriblink)](https://pypi.org/project/attriblink/)
 [![Tests](https://github.com/george-dominic/attriblink/actions/workflows/test.yml/badge.svg)](https://github.com/george-dominic/attriblink/actions/workflows/test.yml)
@@ -9,6 +11,10 @@ Multi-period attribution linking for portfolio returns.
 ## Overview
 
 Attribution linking is a technique used in investment performance analysis to decompose portfolio returns across multiple periods while preserving additivity. This package provides implementations of linking methods, starting with the Carino method.
+
+> **Note:** This library is currently in **alpha**. APIs may evolve.
+
+For full documentation, see [DOCS.md](./DOCS.md).
 
 ## Installation
 
