@@ -2,6 +2,7 @@
 
 import numpy as np
 import pandas as pd
+import pytest
 
 from attriblink import link
 from attriblink.methods.carino import get_k_factor
@@ -17,10 +18,10 @@ class TestCarinoBasic:
 
         # Effects: allocation and selection
         effects = pd.DataFrame(
-            {"allocation": [0.005, 0.008], "selection": [0.002, 0.005]},
+            {"allocation": [0.003, 0.008], "selection": [0.002, 0.002]},
         )
 
-        # Disable validation - Carino handles effects that don't sum to excess
+        # Period effects reconcile to active return before linking
         result = link(effects, portfolio, benchmark, method="carino", check_effects_sum=False)
 
         # Verify additivity to geometric cumulative excess return (CER)
@@ -37,13 +38,13 @@ class TestCarinoBasic:
 
         effects = pd.DataFrame(
             {
-                "allocation": [0.005, 0.008, 0.003],
-                "selection": [0.002, 0.005, 0.004],
+                "allocation": [0.002, 0.006, 0.002],
+                "selection": [0.002, 0.002, 0.002],
                 "interaction": [0.001, 0.002, 0.001],
             },
         )
 
-        # Disable validation - Carino handles effects that don't sum to excess
+        # Period effects reconcile to active return before linking
         result = link(effects, portfolio, benchmark, method="carino", check_effects_sum=False)
 
         cr_port = (1 + portfolio).prod() - 1
@@ -65,7 +66,7 @@ class TestCarinoBasic:
 
         result = link(effects, portfolio, benchmark, method="carino")
 
-        # Single period: linked = sum (k = 1)
+        # Single period: period and cumulative coefficients cancel
         expected_sum = effects.sum().sum()
         actual_sum = result['allocation'] + result['selection']
         assert np.isclose(actual_sum, expected_sum, rtol=1e-10)
@@ -93,7 +94,7 @@ class TestCarinoEdgeCases:
         # Disable validation - this is an edge case test
         result = link(effects, portfolio, benchmark, method="carino", check_effects_sum=False)
 
-        # With zero excess, should use k=1
+        # Equal returns use the finite coefficient limit
         linked_sum = result['effect']
         assert np.isclose(linked_sum, 0.0)
 
@@ -156,8 +157,8 @@ class TestKFactor:
 
         k = get_k_factor(portfolio, benchmark)
 
-        # With zero excess, k should be 1
-        assert np.isclose(k, 1.0)
+        # Equal cumulative returns use 1 / (1 + cumulative return)
+        assert np.isclose(k, 1 / ((1 + portfolio).prod()))
 
 
 class TestCarinoNumericalStability:
@@ -208,7 +209,7 @@ class TestAttributionResult:
         portfolio = pd.Series([0.02, 0.03])
         benchmark = pd.Series([0.015, 0.02])
         effects = pd.DataFrame(
-            {"allocation": [0.005, 0.008], "selection": [0.002, 0.005]},
+            {"allocation": [0.003, 0.008], "selection": [0.002, 0.002]},
         )
 
         result = link(effects, portfolio, benchmark, method="carino", check_effects_sum=False)
@@ -221,7 +222,7 @@ class TestAttributionResult:
         portfolio = pd.Series([0.02, 0.03])
         benchmark = pd.Series([0.015, 0.02])
         effects = pd.DataFrame(
-            {"allocation": [0.005, 0.008], "selection": [0.002, 0.005]},
+            {"allocation": [0.003, 0.008], "selection": [0.002, 0.002]},
         )
 
         result = link(effects, portfolio, benchmark, method="carino", check_effects_sum=False)
@@ -234,7 +235,7 @@ class TestAttributionResult:
         portfolio = pd.Series([0.02, 0.03])
         benchmark = pd.Series([0.015, 0.02])
         effects = pd.DataFrame(
-            {"allocation": [0.005, 0.008], "selection": [0.002, 0.005]},
+            {"allocation": [0.003, 0.008], "selection": [0.002, 0.002]},
         )
 
         result = link(effects, portfolio, benchmark, method="carino", check_effects_sum=False)
@@ -248,10 +249,69 @@ class TestAttributionResult:
         portfolio = pd.Series([0.02, 0.03])
         benchmark = pd.Series([0.015, 0.02])
         effects = pd.DataFrame(
-            {"allocation": [0.005, 0.008], "selection": [0.002, 0.005]},
+            {"allocation": [0.003, 0.008], "selection": [0.002, 0.002]},
         )
 
         result = link(effects, portfolio, benchmark, method="carino", check_effects_sum=False)
 
         summary_str = str(result)
         assert "Attribution Summary" in summary_str
+
+
+class TestCarinoRegression:
+    """Independent expected effects catch errors hidden by total reconciliation."""
+
+    def test_period_specific_weights(self):
+        portfolio = pd.Series([0.2, -0.1])
+        benchmark = pd.Series([0.1, -0.05])
+        effects = pd.DataFrame({'allocation': [0.1, 0], 'selection': [0, -0.05]})
+        result = link(effects, portfolio, benchmark, strict=True)
+        np.testing.assert_allclose(result.linked_effects, [0.092441227530, -0.057441227530], atol=1e-12)
+        assert np.isclose(result.k_factor, get_k_factor(portfolio.values, benchmark.values))
+
+    def test_arithmetic_cancellation(self):
+        result = link(pd.DataFrame({'allocation': [0.1, 0], 'selection': [0, -0.1]}),
+                      pd.Series([0.1, 0.2]), pd.Series([0, 0.3]), strict=True)
+        np.testing.assert_allclose(result.linked_effects, [0.124853910311, -0.104853910311], atol=1e-12)
+        assert np.isclose(result.linked_effects.sum(), 0.02)
+
+    def test_cumulative_cancellation(self):
+        result = link(pd.DataFrame({'allocation': [0.1, 0], 'selection': [0, -0.1]}),
+                      pd.Series([0.1, 0]), pd.Series([0, 0.1]), strict=True)
+        np.testing.assert_allclose(result.linked_effects, [0.104841197785, -0.104841197785], atol=1e-12)
+        assert np.isclose(result.k_factor, 1 / 1.1)
+
+    def test_equal_period_returns_with_offsetting_effects(self):
+        result = link(pd.DataFrame({'allocation': [0.01, 0], 'selection': [-0.01, 0.1]}),
+                      pd.Series([0.1, 0.2]), pd.Series([0.1, 0.1]), strict=True)
+        np.testing.assert_allclose(result.linked_effects, [0.011492749966699, 0.098507250033301], atol=1e-12)
+
+    def test_small_active_returns(self):
+        result = link(pd.DataFrame({'effect': [1e-12, 2e-12]}),
+                      pd.Series([0.1 + 1e-12, 0.2 + 2e-12]), pd.Series([0.1, 0.2]), strict=True)
+        np.testing.assert_allclose(result.linked_effects, [3.4e-12], rtol=1e-10, atol=1e-22)
+
+    def test_mismatched_effects_are_not_rescaled(self):
+        portfolio = pd.Series([0.1, 0.2])
+        benchmark = pd.Series([0, 0.1])
+        effects = pd.DataFrame({'effect': [0.05, 0.05]})
+        result = link(effects, portfolio, benchmark, check_effects_sum=False)
+        assert np.isclose(result['effect'], 0.11)
+        assert not np.isclose(result['effect'], 0.22)
+
+    def test_large_negative_active_return_is_valid(self):
+        result = link(pd.DataFrame({'effect': [-1.3, 0.1]}),
+                      pd.Series([-0.8, 0.2]), pd.Series([0.5, 0.1]), strict=True)
+        assert np.isclose(result['effect'], -1.41)
+
+    def test_invalid_portfolio_log_domain(self):
+        with pytest.raises(ValueError, match='<= -1'):
+            link(pd.DataFrame({'effect': [-1.0]}), pd.Series([-1.0]), pd.Series([0.0]))
+
+    @pytest.mark.parametrize("factor, unit", [(1, "decimal"), (100, "percent"), (10000, "bps")])
+    def test_output_units(self, factor, unit):
+        effects = pd.DataFrame({'allocation': [0.1, 0], 'selection': [0, -0.05]})
+        result = link(effects * factor, pd.Series([0.2, -0.1]) * factor,
+                      pd.Series([0.1, -0.05]) * factor, unit=unit, strict=True)
+        np.testing.assert_allclose(result.linked_effects / factor,
+                                   [0.092441227530, -0.057441227530], atol=1e-12)

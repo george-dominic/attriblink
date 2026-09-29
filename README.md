@@ -59,7 +59,7 @@ print(f"Selection:  {result['selection']:.4%}")
 
 # k-factor interpretation
 print(f"k-factor: {result.k_factor:.4f}")
-# k > 1: volatile excess returns, k < 1: consistent excess
+# Each period is weighted by its coefficient divided by this cumulative k
 ```
 
 ### Using Basis Points (BPS)
@@ -132,13 +132,15 @@ result = link_batch(
 
 ## Understanding the k-Factor
 
-The k-factor is a smoothing coefficient that scales attribution effects to achieve geometric additivity:
+The reported k-factor is the cumulative log-return coefficient:
+`K = (log(1 + R_p) - log(1 + R_b)) / (R_p - R_b)`.
+Each period's effects are weighted by `k_t / K` before summing. Equal returns
+use the limit `1 / (1 + return)`. K alone is not a volatility indicator or a
+common multiplier on all effects.
 
-- **k = 1.0**: No adjustment needed (arithmetic = geometric)
-- **k > 1**: Volatile excess returns — effects scaled up
-- **k < 1**: Consistent excess returns — effects scaled down
-
-The sum of linked effects always equals the cumulative excess return.
+Linked effects sum to cumulative portfolio return minus cumulative benchmark
+return when each period's input effects reconcile to active return. Inconsistent
+inputs are not rescaled to force reconciliation.
 
 ## API
 

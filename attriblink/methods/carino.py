@@ -4,26 +4,17 @@ The Carino method addresses the non-additivity of geometric linking in multi-per
 attribution by using a log-based scaling factor (k-factor).
 
 Formula:
-    k = ln(1 + CER) / sum_t(ln(1 + ER_t))
+    k_t = (ln(1 + r_p,t) - ln(1 + r_b,t)) / (r_p,t - r_b,t)
+    K = (ln(1 + R_p) - ln(1 + R_b)) / (R_p - R_b)
+    linked_effect_j = sum_t(effect_j,t * k_t / K)
 
-where:
-    CER = cumulative excess return = CR_p - CR_b
-    CR_p = geometric cumulative portfolio return = Π(1 + r_portfolio) - 1
-    CR_b = geometric cumulative benchmark return = Π(1 + r_benchmark) - 1
-    ER_t = excess return in period t = r_portfolio_t - r_benchmark_t
-
-The linked effect for each source is:
-    linked_effect_j = k * sum_t(effect_j_t)
-
-This ensures the key invariant:
-    sum_j(linked_effect_j) = CER
-
-The method handles edge cases:
-- Single period: k = 1 (effects returned as-is)
-- When CER ≈ 0: k = 1
+R_p and R_b are compounded portfolio and benchmark returns. When returns
+are equal, the coefficient's limit is 1 / (1 + return). Reconciled period
+effects therefore sum to R_p - R_b after linking, within floating-point
+precision. No residual rescaling is applied.
 
 Reference:
-    Carino, D. R. (1999). Linking Attribution Effects. CFA Institute.
+    Carino, D. R. (1999). Combining Attribution Effects Over Time.
 """
 
 from __future__ import annotations
@@ -33,10 +24,7 @@ from typing import TYPE_CHECKING, overload
 import numpy as np
 import pandas as pd
 
-from ..utils.math import (
-    DEFAULT_EPSILON,
-    safe_log1p,
-)
+from ..utils.math import safe_log1p
 
 if TYPE_CHECKING:
     from numpy.typing import NDArray
@@ -110,7 +98,7 @@ def carino_link(
 ) -> pd.Series | tuple[pd.Series, float]:
     """Apply Carino multi-period linking to attribution effects.
 
-    The sum of linked effects equals the cumulative excess return
+    For reconciled period effects, the sum equals the cumulative excess return
     (geometric active return), consistent with the Carino definition
     of CER in this module.
 
@@ -122,76 +110,24 @@ def carino_link(
 
     Returns:
         Series of linked effects (one value per effect column).
-        The sum of linked effects equals the cumulative excess return.
+        Reconciled period effects sum to the cumulative excess return.
         If return_k=True, returns (linked_effects, k_factor) tuple.
 
     Raises:
-        ZeroExcessReturnError: If cumulative excess return is zero or near-zero.
+        ValueError: If portfolio or benchmark returns are <= -1.
     """
     # Convert to numpy arrays for performance
     effects_arr = effects.values  # Shape: (n_periods, n_effects)
     portfolio_arr = portfolio_returns.values
     benchmark_arr = benchmark_returns.values
 
-    # Compute period excess returns
-    excess_returns = portfolio_arr - benchmark_arr
-
-    # Arithmetic sum of period excess returns (used only for k-factor fallback)
-    total_excess = np.sum(excess_returns)
-
-    # Geometric cumulative excess return (Carino CER target)
-    cumulative_excess = compute_cumulative_excess_from_returns(
-        portfolio_arr,
-        benchmark_arr,
-    )
-
-    # Handle single period case: no linking needed (arithmetic == geometric)
-    if len(portfolio_arr) == 1:
-        k_factor = 1.0
-    # Handle near-zero cumulative excess: use k = 1
-    elif abs(cumulative_excess) < DEFAULT_EPSILON:
-        k_factor = 1.0
-    else:
-        # Compute sum of log-linked excess returns (denominator of k-factor)
-        log_excess = safe_log1p(excess_returns)
-        sum_log_excess = np.sum(log_excess)
-
-        if abs(sum_log_excess) < DEFAULT_EPSILON:
-            # Denominator is near-zero; fall back to ratio of
-            # geometric to arithmetic excess when possible.
-            if abs(total_excess) < DEFAULT_EPSILON:
-                k_factor = 1.0
-            else:
-                k_factor = cumulative_excess / total_excess
-        else:
-            # Standard Carino k-factor formula:
-            # k = ln(1 + CER) / sum(ln(1 + ER_t))
-            numerator = safe_log1p(np.array([cumulative_excess]))[0]
-            k_factor = numerator / sum_log_excess
-
-    # Sum effects across periods for each effect type
-    effect_sums = np.sum(effects_arr, axis=0)
-
-    # Apply k-factor scaling
-    linked_effects = k_factor * effect_sums
-
-    # Ensure exact additivity by scaling to match geometric cumulative excess.
-    # This handles edge cases where k-factor calculation is problematic.
-    # Note: This means effective_k = k * residual_scale, not just k_factor.
-    residual_scale = 1.0
-    if (
-        len(effect_sums) > 0
-        and abs(np.sum(linked_effects)) > DEFAULT_EPSILON
-        and abs(cumulative_excess) > DEFAULT_EPSILON
-    ):
-        residual_scale = cumulative_excess / np.sum(linked_effects)
-        linked_effects = linked_effects * residual_scale
+    period_k = _log_return_coefficient(portfolio_arr, benchmark_arr)
+    k_factor = get_k_factor(portfolio_arr, benchmark_arr)
+    linked_effects = np.sum(effects_arr * (period_k / k_factor)[:, None], axis=0)
 
     # Preserve original index names from effects columns
     result = pd.Series(linked_effects, index=effects.columns, name="linked_effects")
 
-    # Note: When residual scaling is applied, effective_k = k_factor * residual_scale
-    # ensures exact additivity. The returned k_factor is the pure Carino k.
     if return_k:
         return result, k_factor
     return result
@@ -211,26 +147,29 @@ def get_k_factor(
         benchmark_returns: Array of benchmark returns.
 
     Returns:
-        The Carino k-factor.
+        The cumulative log-return coefficient K (not a common effect multiplier).
     """
-    if len(portfolio_returns) == 1:
-        return 1.0
+    # Validate the log domain for every period, including single-period inputs.
+    safe_log1p(portfolio_returns)
+    safe_log1p(benchmark_returns)
+    cumulative_portfolio = compute_geometric_cumulative_return(portfolio_returns)
+    cumulative_benchmark = compute_geometric_cumulative_return(benchmark_returns)
+    return float(_log_return_coefficient(
+        np.array([cumulative_portfolio]), np.array([cumulative_benchmark])
+    )[0])
 
-    cumulative_excess = compute_cumulative_excess_from_returns(
-        portfolio_returns, benchmark_returns
+
+def _log_return_coefficient(
+    portfolio_returns: NDArray[np.float64],
+    benchmark_returns: NDArray[np.float64],
+) -> NDArray[np.float64]:
+    """Compute log-return divided differences, including the equal-return limit."""
+    safe_log1p(portfolio_returns)
+    safe_log1p(benchmark_returns)
+    excess = portfolio_returns - benchmark_returns
+    # log1p of the relative difference avoids subtracting nearly equal logs.
+    log_difference = safe_log1p(excess / (1 + benchmark_returns))
+    return np.divide(
+        log_difference, excess,
+        out=1.0 / (1 + benchmark_returns), where=excess != 0,
     )
-    excess_returns = portfolio_returns - benchmark_returns
-    log_excess = safe_log1p(excess_returns)
-    sum_log_excess = np.sum(log_excess)
-
-    if abs(cumulative_excess) < DEFAULT_EPSILON:
-        return 1.0
-
-    if abs(sum_log_excess) < DEFAULT_EPSILON:
-        sum_simple_excess = np.sum(excess_returns)
-        if abs(sum_simple_excess) < DEFAULT_EPSILON:
-            return 1.0
-        return cumulative_excess / sum_simple_excess
-
-    numerator = safe_log1p(np.array([cumulative_excess]))[0]
-    return numerator / sum_log_excess
