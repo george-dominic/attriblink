@@ -25,78 +25,23 @@ This violates the fundamental **additivity principle**: the sum of all attributi
 
 ### Carino Method Formula
 
-The Carino method (Carino, 1999) resolves this by introducing a **smoothing factor (k-factor)** that scales all attribution effects proportionally:
-
-#### The k-Factor Formula
-
-$$k = \frac{\ln(1 + CER)}{\sum_{t=1}^{n} \ln(1 + ER_t)}$$
-
-Where:
-- $CER$ = Cumulative Excess Return (geometric) = $R_p - R_b$
-- $R_p$ = Geometric cumulative portfolio return = $\prod_{t=1}^{n}(1 + r_{p,t}) - 1$
-- $R_b$ = Geometric cumulative benchmark return = $\prod_{t=1}^{n}(1 + r_{b,t}) - 1$
-- $ER_t$ = Period excess return = $r_{p,t} - r_{b,t}$
-- $n$ = Number of periods
-
-#### Linked Effects Formula
-
-$$Effect_{linked} = k \times \sum_{t=1}^{n} Effect_t$$
-
-#### The Key Invariant
-
-$$\sum_{j} Effect_{linked,j} = CER$$
-
-This ensures that the sum of all linked attribution effects **exactly equals** the geometric cumulative excess return.
-
-### Detailed Formula Derivation
-
-**Step 1: Compute geometric cumulative returns**
-
-$$R_p = \prod_{t=1}^{n}(1 + r_{p,t}) - 1$$
-$$R_b = \prod_{t=1}^{n}(1 + r_{b,t}) - 1$$
-
-**Step 2: Compute cumulative excess return (CER)**
-
-$$CER = R_p - R_b$$
-
-**Step 3: Compute period-by-period excess returns**
-
-$$ER_t = r_{p,t} - r_{b,t} \quad \text{for } t = 1, 2, \ldots, n$$
-
-**Step 4: Compute log-linked excess returns**
-
-$$\ln(ER_t + 1) = \ln(1 + ER_t)$$
-
-**Step 5: Sum the log-linked excess returns**
-
-$$S = \sum_{t=1}^{n} \ln(1 + ER_t)$$
-
-**Step 6: Compute k-factor**
-
-$$k = \frac{\ln(1 + CER)}{S}$$
-
-**Step 7: Scale each attribution effect**
-
-For each attribution source $j$:
-$$Effect_{linked,j} = k \times \sum_{t=1}^{n} Effect_{j,t}$$
-
-### Mathematical Intuition
-
-The Carino method bridges **arithmetic** (period-by-period) and **geometric** (cumulative) return calculations:
-
-- **Arithmetic linking**: Simply sum period effects → fails to match geometric excess return
-- **Geometric linking**: Compound period effects → mathematically complex, may produce negative effects
-- **Carino smoothing**: Scales arithmetic effects by $k$ → preserves sign and relative magnitude while ensuring additivity
-
-### Period-Level k-Factor (Advanced)
-
-For more granular analysis, a period-level k-factor can be computed:
+Carino uses period-specific log-return coefficients:
 
 $$k_t = \frac{\ln(1 + r_{p,t}) - \ln(1 + r_{b,t})}{r_{p,t} - r_{b,t}}$$
+$$K = \frac{\ln(1 + R_p) - \ln(1 + R_b)}{R_p - R_b}$$
+$$Effect_{linked,j} = \sum_t Effect_{j,t} \frac{k_t}{K}$$
 
-This is useful when you want to see how the smoothing factor varies across periods. When portfolio and benchmark returns are equal ($r_{p,t} = r_{b,t}$):
+Here $R_p = \prod_t(1 + r_{p,t}) - 1$ and $R_b = \prod_t(1 + r_{b,t}) - 1$.
+When portfolio and benchmark returns are equal, use the coefficient limit
+$1 / (1 + return)$, both for periods and for the cumulative horizon.
 
-$$k_t = \frac{1}{1 + r_{p,t}}$$
+If effects sum to active return in every period, the linked effects sum to
+$R_p - R_b$, within floating-point precision. This follows because summing
+period log-return differences gives the cumulative log-return difference.
+Single-period effects are unchanged because $k_t / K = 1$.
+
+Portfolio and benchmark returns must each be greater than -100%. Active return
+itself may be below -100%; the logarithms apply to the separate returns.
 
 ### Reference
 
@@ -146,93 +91,19 @@ You may need to disable validation in these scenarios:
 
 ### Scaling Behavior
 
-The library handles two types of scaling:
-
-1. **k-factor scaling**: Applied automatically via the Carino formula
-2. **Residual scaling**: Applied as a final adjustment to ensure exact additivity
-
-```python
-# The library ensures exact additivity:
-linked_sum = result.linked_effects.sum()
-cumulative_excess = (1 + portfolio_returns).prod() - (1 + benchmark_returns).prod() - 1
-
-assert abs(linked_sum - cumulative_excess) < 1e-10  # Always true
-```
+Each period is weighted by `k_t / K`. No residual scaling is applied.
+Disabling validation or continuing after a warning does not repair inconsistent
+inputs; their linked total may differ from cumulative active return.
 
 ---
 
 ## K-Factor Interpretation
 
-### What the k-Factor Tells You
-
-The k-factor is a **smoothing coefficient** that adjusts raw attribution effects to achieve geometric additivity. It bridges the gap between arithmetic and geometric return calculation.
-
-### K > 1: Interpretation
-
-**When k > 1** (e.g., k = 1.15):
-
-| Scenario | Meaning |
-|----------|---------|
-| **Volatile excess returns** | Period-by-period excess returns varied significantly (some positive, some negative) |
-| **Compounding asymmetry** | Geometric linking would overweight negative periods; Carino scales up to compensate |
-| **Typical range** | 1.0 to ~1.5 for moderate volatility |
-
-**Practical example**: If k = 1.15, the raw sum of attribution effects is scaled up by 15%. This typically occurs when:
-- Portfolio and benchmark returns have opposite signs in some periods
-- Large return dispersion across periods
-
-### K < 1: Interpretation
-
-**When k < 1** (e.g., k = 0.88):
-
-| Scenario | Meaning |
-|----------|---------|
-| **Consistent excess returns** | Portfolio consistently outperformed (or underperformed) benchmark |
-| **Compounding benefit/harm** | Geometric compounding works in your favor; less scaling needed |
-| **Typical range** | ~0.5 to 1.0 for consistently positive/negative excess |
-
-**Practical example**: If k = 0.88, the raw sum is scaled down by 12%. This typically occurs when:
-- Excess returns are consistently positive (or consistently negative)
-- Geometric compounding naturally aligns with arithmetic sum
-
-### K = 1: Interpretation
-
-**When k = 1**:
-
-| Scenario | Meaning |
-|----------|---------|
-| **Single period** | No linking needed; arithmetic = geometric |
-| **Zero cumulative excess** | CER ≈ 0; no adjustment necessary |
-| **Log-linear returns** | Period excess returns follow a specific pattern |
-
-### Interpreting Period-Level k_t
-
-The period-level k-factor reveals **within-period dynamics**:
-
-- **k_t ≈ 1**: Period excess return is small; arithmetic ≈ geometric
-- **k_t > 1**: Large positive or negative excess in that period
-- **k_t < 1**: Moderate excess with compounding benefits
-
-### Worked Example
-
-```python
-import pandas as pd
-from attriblink import link
-
-# Quarterly data with volatile excess returns
-portfolio = pd.Series([0.05, -0.02, 0.08, 0.03], 
-                       index=pd.date_range("2024-01-01", periods=4, freq="QE"))
-benchmark = pd.Series([0.03, 0.01, 0.05, 0.02],
-                       index=portfolio.index)
-
-effects = pd.DataFrame({
-    "allocation": [0.015, -0.025, 0.020, 0.008],
-    "selection":  [0.005, -0.005, 0.010, 0.002],
-}, index=portfolio.index)
-
-result = link(effects, portfolio, benchmark)
-print(f"k-factor: {result.k_factor:.4f}")  # Likely > 1 due to volatility
-```
+`result.k_factor` and `get_k_factor()` return the cumulative coefficient `K`.
+The actual weight on a period is `k_t / K`: weights above one increase that
+period's effects, and weights below one reduce them. K alone does not indicate
+volatility or a uniform percentage adjustment. Equal cumulative returns use
+`K = 1 / (1 + R_p)`; zero active return does not imply K equals one.
 
 ---
 
@@ -241,7 +112,7 @@ print(f"k-factor: {result.k_factor:.4f}")  # Likely > 1 due to volatility
 ### 1. Single-Period Attribution
 
 Carino is designed for **multi-period** linking. For single periods:
-- k = 1 by definition (no linking needed)
+- The period and cumulative coefficients cancel (no linking needed)
 - Use standard arithmetic attribution directly
 
 ```python
@@ -253,12 +124,9 @@ if len(periods) == 1:
 
 ### 2. Near-Zero Cumulative Excess
 
-When $CER \approx 0$:
-- k-factor becomes unstable (division by near-zero)
-- The library handles this by setting k = 1.0 automatically
-- But interpretation becomes problematic
-
-**Warning sign**: Cumulative excess return < 0.001 (0.1%)
+Zero and near-zero cumulative active returns are supported using the
+finite log-return coefficient limit. Offsetting linked effects may remain
+nonzero even when their total is zero.
 
 ### 3. Highly Asymmetric Return Distributions
 
@@ -287,7 +155,7 @@ If your benchmark and portfolio have different rebalancing dates:
 
 ### 7. When Exact Period Effects Must Be Preserved
 
-Carino scales **all periods equally** by the same k-factor:
+Carino scales periods by their respective `k_t / K` weights:
 - If you need to show exact per-period contributions
 - Consider: disclosure tables showing both raw and linked effects
 
@@ -505,7 +373,7 @@ for i, (p, b) in enumerate([(portfolio1, benchmark1),
     print(f"  k-factor: {result['k_factor']:.4f}")
     print(f"  Cumulative excess: {result['cumulative_excess']:.2%}")
     print(f"  Excess volatility: {result['excess_volatility']:.2%}")
-    print(f"  → {'k < 1: Consistent' if result['k_factor'] < 1 else 'k > 1: Volatile'}")
+    print("  → Period weights are k_t / K")
 ```
 
 ### Example 6: Basic link() with Decimal Input

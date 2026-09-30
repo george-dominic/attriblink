@@ -42,8 +42,8 @@ def link(
     """Link attribution effects across multiple periods.
 
     This function applies a linking method to convert period-by-period
-    attribution effects into linked effects that sum exactly to the
-    cumulative excess return.
+    attribution effects into linked effects that sum to cumulative excess
+    return when period effects reconcile, within floating-point precision.
 
     Args:
         effects: DataFrame where each column is an attribution effect
